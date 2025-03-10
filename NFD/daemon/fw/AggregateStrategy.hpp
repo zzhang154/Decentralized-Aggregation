@@ -50,6 +50,17 @@ private:
     std::vector<std::weak_ptr<pit::Entry>> dependentInterests; // piggybacked interests waiting on this one
   };
 
+  // Add this after the AggregatePitInfo struct definition (around line 50)
+  struct AggregateSubInfo : public StrategyInfo {
+    static constexpr int
+    getTypeId() {
+      return 1001; // Choose a unique ID different from AggregatePitInfo
+    }
+
+    // Explicitly store the parent PIT entry
+    shared_ptr<pit::Entry> parentEntry;
+  };
+
   // Helper to parse an aggregate Interest Name into a set of integer IDs
   std::set<int> parseRequestedIds(const Interest& interest) const;
 

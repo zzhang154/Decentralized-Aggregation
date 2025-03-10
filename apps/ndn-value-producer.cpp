@@ -44,9 +44,14 @@ ValueProducer::StartApplication()
   if (m_nodeId == 0) {
     m_nodeId = GetNode()->GetId(); // default to NS-3 node ID if not set
   }
-  // Register prefix for this node's data (so interest /aggregate/<nodeId> will reach here)
-  std::string prefix = "/aggregate/" + std::to_string(m_nodeId);
-  FibHelper::AddRoute(GetNode(), prefix, m_face, 0);
+  
+  // Register prefix using binary format (BUG FIX)
+  ::ndn::Name binName("/aggregate");
+  binName.appendNumber(m_nodeId); // Binary format (will create /aggregate/%01, etc.)
+  std::string prefixUri = binName.toUri();
+  
+  FibHelper::AddRoute(GetNode(), prefixUri, m_face, 0);
+  NS_LOG_INFO("Node " << m_nodeId << " registered binary prefix: " << prefixUri);
 }
 
 void
@@ -56,12 +61,26 @@ ValueProducer::OnInterest(std::shared_ptr<const ::ndn::Interest> interest)
   ::ndn::Name interestName = interest->getName();
   NS_LOG_INFO("Node " << m_nodeId << " received Interest: " << interest->getName());
   // If the Interest exactly matches this node's prefix (single ID)
-  if (interestName.size() == 2 && std::to_string(m_nodeId) == interestName.get(1).toUri()) {
-    // Create Data packet with name equal to Interest's name
-    auto data = std::make_shared<::ndn::Data>(interestName);
-    // Content: 8-byte integer equal to m_nodeId (for consistency we use 64-bit)
-    uint64_t val = (uint64_t) m_nodeId;
-    uint64_t netVal = htobe64(val);
+  if (interestName.size() == 2) {
+    // Try to extract and compare the component as a number (works with binary format)
+    bool isMatch = false;
+    
+    try {
+      // This will work for binary-encoded components like %04
+      uint64_t requestedId = interestName.get(1).toNumber();
+      isMatch = (requestedId == m_nodeId);
+    }
+    catch (const std::exception&) {
+      // Fallback to string comparison for non-numeric components
+      isMatch = (std::to_string(m_nodeId) == interestName.get(1).toUri());
+    }
+    
+    if (isMatch) {
+      // Create Data packet with name equal to Interest's name
+      auto data = std::make_shared<::ndn::Data>(interestName);
+      // Content: 8-byte integer equal to m_nodeId
+      uint64_t val = (uint64_t) m_nodeId;
+      uint64_t netVal = htobe64(val);
     
     // Create a buffer for the content
     std::shared_ptr<::ndn::Buffer> buffer = std::make_shared<::ndn::Buffer>(
@@ -75,8 +94,8 @@ ValueProducer::OnInterest(std::shared_ptr<const ::ndn::Interest> interest)
     // Send the Data packet
     m_transmittedDatas(data, this, m_face);
     m_face->sendData(*data);
-    NS_LOG_INFO("Node " << m_nodeId << " produced Data for " << interestName.toUri()
-                << " with value = " << m_nodeId);
+    std::cout << "Node " << m_nodeId << " produced Data for " << interestName.toUri() << " with value = " << m_nodeId << std::endl << std::flush;
+    }
   }
 }
 
