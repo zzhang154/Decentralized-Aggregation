@@ -32,9 +32,19 @@ public:
   afterReceiveData(const Data& data, const FaceEndpoint& ingress,
                    const shared_ptr<pit::Entry>& pitEntry) override;
 
+  void 
+  beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pitEntry);
+
 private:
   // Store our own reference to the Forwarder
   Forwarder& m_forwarder;  // <-- The KEY fix
+
+  // Add this method to register for PIT expiration events
+  void registerPitExpirationCallback();
+
+  // Handler for data reception
+  void onDataReceived(const Data& data, const FaceEndpoint& ingress, 
+    const shared_ptr<pit::Entry>& pitEntry);
 
   // Structure to hold strategy-specific info for each PIT entry (interest)
   struct AggregatePitInfo : public StrategyInfo {

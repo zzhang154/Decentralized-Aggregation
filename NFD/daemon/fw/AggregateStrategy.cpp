@@ -33,9 +33,25 @@ AggregateStrategy::AggregateStrategy(Forwarder& forwarder, const Name& name)
 {
   // Set the instance name explicitly
   this->setInstanceName(name);
-  
-  // Logging the strategy initialization (for debugging)
+
+  // Register for PIT expiration
+  registerPitExpirationCallback();
+
   std::cout << "AggregateStrategy initialized for Forwarder." << std::endl;
+  std::cout << "Strategy will use virtual method overrides." << std::endl << std::flush;
+    
+}
+
+// Add this new method that handles the event
+void 
+AggregateStrategy::onDataReceived(const Data& data, const FaceEndpoint& ingress,
+                                 const shared_ptr<pit::Entry>& pitEntry)
+{
+  // Call the parent implementation first
+  Strategy::afterReceiveData(data, ingress, pitEntry);
+  
+  // Then run your own handler implementation
+  this->afterReceiveData(data, ingress, pitEntry);  // Now safe to call
 }
 
 // Helper: parse interest name of form /aggregate/<id1>/<id2>/... into a set of integers
@@ -88,6 +104,17 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
           << " via " << ingress.face.getId() 
           << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
           << "s" << std::endl << std::flush;
+
+  // Dump the current PIT entries for debugging:
+  std::cout << "Current PIT entries before forwarding Interest:" << std::endl;
+  Pit &pit = m_forwarder.getPit();
+  for (auto it = pit.begin(); it != pit.end(); ++it) {
+      // Do not try to copy *it; instead, bind it to a const reference.
+      const nfd::pit::Entry &entry = *it;
+      std::cout << "  PIT entry: " << entry.getName() 
+                << " (InFaces=" << entry.getInRecords().size() 
+                << ", OutFaces=" << entry.getOutRecords().size() << ")" << std::endl;
+  }
           
   // Only operate on aggregate Interests (prefix "/aggregate")
   // (StrategyChoice should ensure this strategy only sees those by configuration)
@@ -101,6 +128,8 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
     const fib::NextHopList& nexthops = fibEntry.getNextHops();
     if (!nexthops.empty()) {
       Face& outFace = nexthops.begin()->getFace();
+      std::cout << "[Strategy] Forwarding regular Interest " 
+              << interestName << " to face " << outFace.getId() << std::endl;
       this->sendInterest(interest, outFace, pitEntry);
     }
     return;
@@ -323,12 +352,23 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
         subInterestName.appendNumber(id);
       }
 
+      // add the sub-interest into the parent map
+      m_parentMap[subInterestName] = pitEntry;
+
+      // *** Add these lines: ***
+      const nfd::fib::Entry& fibEntry = fib.findLongestPrefixMatch(subInterestName);
+      std::cout << ">> Forwarding sub-Interest " << subInterestName.toUri()
+                << " via face " << outFace->getId()
+                << " (FIB match: " << fibEntry.getPrefix().toUri() << ")" << std::endl;
+      // *** End addition ***
+
       // create Interest with shared_ptr to avoid bad_weak_ptr exception
       std::shared_ptr<ndn::Interest> subInterest = std::make_shared<Interest>(subInterestName);
       subInterest->setCanBePrefix(false);
       subInterest->setInterestLifetime(interest.getInterestLifetime());
       // Insert a copy of the Interest to avoid bad_weak_ptr
       auto temporaryEntry = m_forwarder.getPit().insert(*subInterest).first;
+
       this->sendInterest(*subInterest, *outFace, temporaryEntry);
 
       // After forwarding, find the newly created PIT entry and attach our metadata
@@ -364,9 +404,20 @@ void
 AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingress,
                                    const shared_ptr<pit::Entry>& pitEntry) 
 {
+  Strategy::afterReceiveData(data, ingress, pitEntry); // call base to forward data to pending faces
   Name dataName = data.getName();
   std::cout << "<< Data received: " << dataName.toUri() 
             << " from face " << ingress.face.getId() << std::endl << std::flush;
+
+  // Dump the current PIT entries for debugging:
+  std::cout << "Current PIT entries before processing Data:" << std::endl;
+  Pit &pit = m_forwarder.getPit();
+  for (auto it = pit.begin(); it != pit.end(); ++it) {
+      const nfd::pit::Entry &entry = *it;
+      std::cout << "  PIT entry: " << entry.getName() 
+                << " (InFaces=" << entry.getInRecords().size() 
+                << ", OutFaces=" << entry.getOutRecords().size() << ")" << std::endl;
+  }
 
   // Check if this Data corresponds to a sub-Interest that was sent out (i.e., part of an aggregated request)
   auto parentIt = m_parentMap.find(dataName);
@@ -431,8 +482,8 @@ AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingres
           std::shared_ptr<ndn::Buffer> buffer = std::make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(&sumNbo), sizeof(sumNbo));
           aggData->setContent(buffer);
           aggData->setFreshnessPeriod(::ndn::time::milliseconds(1000));
-          // WITH THIS CORRECT VERSION:
-            for (const auto& inRecord : pitEntry->getInRecords()) {
+          // WITH THIS CORRECT VERSION (BUG FIX WITH parentPit->):
+            for (const auto& inRecord : parentPit->getInRecords()) {
                 Face& outFace = inRecord.getFace();
                 this->sendData(*aggData, outFace, parentPit);
             }
@@ -476,13 +527,14 @@ AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingres
               std::shared_ptr<ndn::Buffer> buffer = std::make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(&childSumNbo), sizeof(childSumNbo));
               childData->setContent(buffer);
               childData->setFreshnessPeriod(::ndn::time::milliseconds(1000));
-              // WITH THIS CORRECT VERSION:
-                for (const auto& inRecord : pitEntry->getInRecords()) {
-                    Face& outFace = inRecord.getFace();
-                    this->sendData(*childData, outFace, childPit);
-                }
+
+              // NEW (corrected) -- BUG FIX: use childPit instead of pitEntry->getInRecords()
+              for (const auto& inRecord : childPit->getInRecords()) {
+                  Face& outFace = inRecord.getFace();
+                  this->sendData(*childData, outFace, childPit);
+              }
               std::cout << "<< Satisfied piggybacked Interest " << childName.toUri() 
-                        << " with sum = " << childSum << std::endl << std::flush;
+                        << " with sum = " << childSum << std::endl;
             }
           }
         }
@@ -554,8 +606,8 @@ AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingres
         finalData->setContent(buffer);
         finalData->setFreshnessPeriod(::ndn::time::milliseconds(1000));
         
-        // WITH THIS CORRECT VERSION:
-        for (const auto& inRecord : pitEntry->getInRecords()) {
+        // WITH THIS CORRECT VERSION (BUG FIX WITH waitingPit->):
+        for (const auto& inRecord : waitingPit->getInRecords()) {
             Face& outFace = inRecord.getFace();
             this->sendData(*finalData, outFace, waitingPit);
         }
@@ -600,16 +652,58 @@ AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingres
   }
 
   // ** Forward the Data down to any PIT downstreams as usual (if not already handled) **
-  int recordCount = 0;
-  for (const auto& inRecord : pitEntry->getInRecords()) {
-    recordCount++;
-  }
-  std::cout << "  [Forward] Forwarding Data to " << recordCount << " downstream faces" << std::endl << std::flush;
   
   // WITH THIS CORRECT VERSION:
+  int recordCount = 0;
   for (const auto& inRecord : pitEntry->getInRecords()) {
       Face& outFace = inRecord.getFace();
+      std::cout << "[Forward] Sending Data " << data.getName() 
+              << " to face " << outFace.getId() << std::endl;
       this->sendData(data, outFace, pitEntry);
+      recordCount++;
+  }
+  std::cout << "  [Forward] Forwarding Data to " << recordCount << " downstream faces" << std::endl << std::flush;
+}
+
+void 
+AggregateStrategy::registerPitExpirationCallback()
+{
+  // Register a callback for PIT entry expiration using NFD's signal mechanism
+  m_forwarder.beforeExpirePendingInterest.connect(
+    [this] (const pit::Entry& pitEntry) {  // Changed from shared_ptr to const&
+      std::cout << "!! PIT EXPIRED: " << pitEntry.getName().toUri()
+                << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
+                << "s" << std::endl << std::flush;
+      
+      // Log details about the expired entry (use . instead of ->)
+      AggregatePitInfo* pitInfo = pitEntry.getStrategyInfo<AggregatePitInfo>();
+      if (pitInfo) {
+        std::cout << "  [Expired] " << pitInfo->pendingIds.size() << " pending IDs: { ";
+        for (int id : pitInfo->pendingIds) {
+          std::cout << id << " ";
+        }
+        std::cout << "}" << std::endl << std::flush;
+      }
+    });
+  std::cout << "PIT expiration handler registered!" << std::endl << std::flush;
+}
+
+void
+AggregateStrategy::beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pitEntry)
+{
+  Name interestName = pitEntry->getName();
+  std::cout << "!! PIT EXPIRED: " << interestName.toUri()
+            << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
+            << "s" << std::endl << std::flush;
+  
+  // Log details about the expired entry
+  AggregatePitInfo* pitInfo = pitEntry->getStrategyInfo<AggregatePitInfo>();
+  if (pitInfo) {
+    std::cout << "  [Expired] " << pitInfo->pendingIds.size() << " pending IDs: { ";
+    for (int id : pitInfo->pendingIds) {
+      std::cout << id << " ";
+    }
+    std::cout << "}" << std::endl << std::flush;
   }
 }
 
