@@ -123,6 +123,24 @@ ValueProducer::OnData(std::shared_ptr<const ::ndn::Data> data)
 {
   App::OnData(data); // Important: call parent implementation
   
+  // Check if this data was produced by this node by examining first two components
+  ::ndn::Name dataName = data->getName();
+  bool isSelfProduced = false;
+  
+  if (dataName.size() >= 2 && dataName.get(0).toUri() == "aggregate") {
+    try {
+      uint64_t dataNodeId = dataName.get(1).toNumber();
+      if (dataNodeId == static_cast<uint64_t>(m_nodeId)) {
+        // This is our own data - don't consume it
+        NS_LOG_DEBUG("Node " << m_nodeId << " ignoring self-produced data: " << dataName);
+        return;
+      }
+    }
+    catch (const std::exception& e) {
+      // If component isn't numeric, assume it's not our data
+    }
+  }
+  
   std::cout << "Node " << m_nodeId << " received Data: " << data->getName() 
             << " with content size " << data->getContent().value_size() << " bytes"
             << " at " << std::fixed << std::setprecision(2) 

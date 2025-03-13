@@ -154,7 +154,7 @@ void createTopology() {
   
   // Set up network links
   PointToPointHelper p2p;
-  p2p.SetChannelAttribute("Delay", StringValue("5ms"));
+  p2p.SetChannelAttribute("Delay", StringValue("2ms"));
   p2p.SetDeviceAttribute("DataRate", StringValue("10Gbps"));
   
   // Print ASCII diagram of the topology

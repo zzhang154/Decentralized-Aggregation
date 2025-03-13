@@ -198,6 +198,78 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
                 << " (InFaces=" << entry.getInRecords().size() 
                 << ", OutFaces=" << entry.getOutRecords().size() << ")" << std::endl;
   }
+
+  // Get a reference to the FIB table first
+  Fib& fib = m_forwarder.getFib();
+
+  // Debug: Print FIB size and pending IDs
+  std::cout << "DEBUG: FIB table has " << std::distance(fib.begin(), fib.end()) << " entries" << std::endl << std::flush;
+
+  // Add this code to dump the complete FIB table content
+  std::cout << "DEBUG: Current FIB entries:" << std::endl;
+  for (const auto& fibEntry : fib) {
+    std::cout << "  - Prefix: " << fibEntry.getPrefix() << " (Nexthops: " << fibEntry.getNextHops().size() << ")" << std::endl;
+    for (const auto& nh : fibEntry.getNextHops()) {
+      std::cout << "    * Face: " << nh.getFace().getId() << " Cost: " << nh.getCost() << std::endl;
+    }
+  }
+
+  // COMBINED INTEREST AGGREGATION CHECK
+  // Check #1: Interest has already been forwarded (has OutFaces)
+  if (pitEntry->hasOutRecords()) {
+    bool isSameFaceDuplicate = false;
+    bool isDifferentFaceDuplicate = false;
+    
+    for (const auto& inRecord : pitEntry->getInRecords()) {
+      if (inRecord.getFace().getId() == ingress.face.getId()) {
+        // This exact same face already has an in-record
+        isSameFaceDuplicate = true;
+      } else {
+        // A different face has an in-record
+        isDifferentFaceDuplicate = true;
+      }
+    }
+    
+    if (isSameFaceDuplicate) {
+      std::cout << "  [Interest Aggregation] Duplicate interest from same face detected" << std::endl;
+      std::cout << "  [Interest Aggregation] Interest " << interest.getName() 
+                << " already forwarded - suppressing redundant forwarding" << std::endl;
+      return; // Exit without forwarding again - this is a duplicate from same face
+    }
+    
+    if (isDifferentFaceDuplicate) {
+      std::cout << "  [Interest Aggregation] Duplicate interest from different face detected" << std::endl;
+      std::cout << "  [Interest Aggregation] Interest " << interest.getName() 
+                << " aggregated (added face " << ingress.face.getId() 
+                << " to existing PIT entry)" << std::endl;
+      return; // Exit without forwarding again
+    }
+  }
+  
+  // Check #2: Another PIT entry exists with the same name and has been forwarded
+  for (auto it = pit.begin(); it != pit.end(); ++it) {
+    const nfd::pit::Entry &entry = *it;
+    
+    // Skip if it's the same entry we're currently processing
+    if (&entry == pitEntry.get()) {
+      continue;
+    }
+    
+    // If same name but different entry, we have a duplicate that should be aggregated
+    if (entry.getName() == interest.getName() && entry.hasOutRecords()) {
+      std::cout << "  [Interest Aggregation] Duplicate interest " << interest.getName() 
+                << " detected across different PIT entries" << std::endl;
+      std::cout << "  [Interest Aggregation] Original PIT entry with "
+                << entry.getInRecords().size() << " in-faces and "
+                << entry.getOutRecords().size() << " out-faces" << std::endl;
+      
+      // The system should merge these eventually, but in some NDN implementations
+      // we need to manually ensure both entries are linked
+      
+      // Don't forward this interest again - data will be returned to all faces
+      return;
+    }
+  }
           
   // Only operate on aggregate Interests (prefix "/aggregate")
   // (StrategyChoice should ensure this strategy only sees those by configuration)
@@ -356,48 +428,6 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
     std::cout << "If some IDs are still pending" << std::endl << std::flush;
     // ** 3. Perform Interest Splitting based on routing (FIB) to minimize redundant requests **
 
-    // OPTIMIZATION: Special case for single-ID interests that are already atomic
-    if (pitInfo->pendingIds.size() == 1 && 
-        interestName.get(0).toUri() == "aggregate") {
-        
-        // This is already an atomic interest with one ID - no need for splitting
-        int singleId = *pitInfo->pendingIds.begin();
-        std::cout << "OPTIMIZATION: Direct forwarding single-ID Interest " << interestName.toUri() 
-                  << " (ID: " << singleId << ")" << std::endl;
-                  
-        // Create a simplified path to look up in FIB
-        Name simplePath("/aggregate");
-        simplePath.appendNumber(singleId);
-                  
-        // Look up FIB entry using the simplified path
-        Fib& fib = m_forwarder.getFib();
-        const fib::Entry& fibEntry = fib.findLongestPrefixMatch(simplePath);
-
-        if (!fibEntry.getPrefix().empty() && !fibEntry.getNextHops().empty()) {
-            const fib::NextHop& nh = *fibEntry.getNextHops().begin();
-            Face& outFace = nh.getFace();
-            
-            // Replace lines 297-307 with this:
-
-            std::cout << ">> Direct forwarding single-ID Interest " << interestName.toUri() 
-            << " via face " << outFace.getId()
-            << " (FIB match: " << fibEntry.getPrefix().toUri() << ")" << std::endl;
-
-            // Forward the original interest directly
-            this->sendInterest(interest, outFace, pitEntry);
-
-            // CRITICAL FIX: Ensure there's an OUT record for this face in the PIT entry
-            // Without this, Data cannot flow back correctly
-            if (pitEntry->getOutRecord(outFace) == pitEntry->out_end()) {
-            pitEntry->insertOrUpdateOutRecord(outFace, interest);
-            std::cout << "  >> Added missing OUT record to PIT entry for face " << outFace.getId() << std::endl;
-            }
-
-            // No need for sub-interest creation or parent mapping
-            return;
-        }
-    }
-
     // Group pending IDs by next-hop face (using FIB longest prefix match for each ID)
     std::map<Face*, std::vector<int>> faceToIdsMap;
     Fib& fib = m_forwarder.getFib();
@@ -410,47 +440,76 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
     }
     std::cout << "]" << std::endl << std::flush;
     
-    // Debug: Print all FIB entries for reference
-    std::cout << "DEBUG: Current FIB entries:" << std::endl << std::flush;
-    for (const auto& entry : fib) {
-      std::cout << "  - Prefix: " << entry.getPrefix() << " (Nexthops: " << entry.getNextHops().size() << ")" << std::endl << std::flush;
-      
-      // Print each nexthop and its face ID
-      for (const auto& nexthop : entry.getNextHops()) {
-        std::cout << "    * Face: " << nexthop.getFace().getId() << " Cost: " << nexthop.getCost() << std::endl << std::flush;
-      }
-    }
-    
+    // Map IDs to faces first
     for (int id : pitInfo->pendingIds) {
-      // Construct a name for the individual ID (assuming producers are reachable via prefix "/aggregate/<id>")
-      Name idName("/aggregate");  // Start with the aggregate prefix
+      // Construct a name for the individual ID
+      Name idName("/aggregate");
       idName.appendNumber(id);
       std::cout << "DEBUG: Looking up FIB entry for ID " << id << ", Name: " << idName << std::endl << std::flush;
       
-      // BUG FIX
       const nfd::fib::Entry& fibEntry = fib.findLongestPrefixMatch(idName);
-      std::cout << "DEBUG: FIB match result for ID " << id << ": " << fibEntry.getPrefix() 
-                << " (Empty: " << fibEntry.getPrefix().empty() << ")" << std::endl << std::flush;
-      
-      if (fibEntry.getPrefix().empty()) {
+      if (fibEntry.getPrefix().empty() || fibEntry.getNextHops().empty()) {
         std::cout << "DEBUG: No route found for ID " << id << ", skipping..." << std::endl << std::flush;
-        continue; // No route for this ID
-      }
-      
-      // Choose the best next hop from FIB entry (lowest cost or highest rank)
-      const fib::NextHopList& nexthops = fibEntry.getNextHops();
-      std::cout << "DEBUG: Found " << nexthops.size() << " nexthops for ID " << id << std::endl << std::flush;
-      
-      if (nexthops.empty()) {
-        std::cout << "DEBUG: NextHops list is empty for ID " << id << ", skipping..." << std::endl << std::flush;
         continue;
       }
       
-      const fib::NextHop& nh = *nexthops.begin(); // pick the first next hop (by metric order)
+      const fib::NextHop& nh = *fibEntry.getNextHops().begin();
       Face& outFace = nh.getFace();
       std::cout << "DEBUG: Selected Face " << outFace.getId() << " for ID " << id << std::endl << std::flush;
       
       faceToIdsMap[&outFace].push_back(id);
+    }
+
+    // NEW OPTIMIZATION: If all IDs map to exactly one face, forward only the pending IDs to that face
+    if (faceToIdsMap.size() == 1 && faceToIdsMap.begin()->second.size() == pitInfo->pendingIds.size()) {
+      Face* outFace = faceToIdsMap.begin()->first;
+      std::cout << "OPTIMIZATION: All " << pitInfo->pendingIds.size() 
+                << " IDs route to the same face (ID: " << outFace->getId() 
+                << ")." << std::endl;
+      
+      // Create a new interest containing only the pending IDs instead of forwarding the original interest
+      std::vector<int> pendingIdsList(pitInfo->pendingIds.begin(), pitInfo->pendingIds.end());
+      std::sort(pendingIdsList.begin(), pendingIdsList.end());
+      
+      // Build name with only pending IDs: /aggregate/id1/id2/...
+      Name optimizedName;
+      optimizedName.append("aggregate");
+      for (int id : pendingIdsList) {
+        optimizedName.appendNumber(id);
+      }
+      
+      // If the sequence number was in the original interest, preserve it
+      for (size_t i = 0; i < interest.getName().size(); i++) {
+        if (interest.getName()[i].toUri().find("seq=") != std::string::npos) {
+          optimizedName.append(interest.getName()[i]);
+          break;
+        }
+      }
+
+      std::cout << "  >> Creating optimized interest with only pending IDs: " 
+                << optimizedName << std::endl;
+                
+      // Create and forward the optimized interest
+      auto optimizedInterest = std::make_shared<Interest>(optimizedName);
+      optimizedInterest->setCanBePrefix(false);
+      optimizedInterest->setInterestLifetime(interest.getInterestLifetime());
+      
+      // Create a new PIT entry for the optimized interest instead of using the original one
+      auto newPitEntry = m_forwarder.getPit().insert(*optimizedInterest).first;
+      
+      // Store relationship between new and original PIT entries
+      AggregateSubInfo* subInfo = newPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
+      if (subInfo) {
+        subInfo->parentEntry = pitEntry;
+      }
+      
+      // Add to parent map to track relationship
+      m_parentMap[optimizedName] = pitEntry;
+      
+      // Send using the new PIT entry
+      this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
+      
+      return;
     }
 
     // Debug output for face-to-IDs mapping

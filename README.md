@@ -1,11 +1,14 @@
-ndnSIM
+Decentralized Data Aggregation in NDN
+
+---------------------------------------------
+### Explanation
+p2p.SetChannelAttribute("Delay", StringValue("2ms")); //If we set 10ms, it will cause interest expire.
+
 ======
 
-ndnSIM模拟学习项目 --by z2h
+- Simulation Example : /examples
 
-- 模拟代码目录 : /examples
-
-- 转发器陌路 : /NFD
+- NDN Forwarding Demon : /NFD
 
 ---------------------------------------------
 ### ndnSim 官方说明
