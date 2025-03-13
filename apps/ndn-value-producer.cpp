@@ -66,17 +66,21 @@ ValueProducer::OnInterest(std::shared_ptr<const ::ndn::Interest> interest)
   NS_LOG_INFO("Node " << m_nodeId << " received Interest: " << interestName 
               << " via app face " << appFaceId);
 
-  // If the Interest exactly matches this node's prefix (single ID)
-  if (interestName.size() == 2) {
-    // Try to extract and compare the component as a number (works with binary format)
+  // BUG FIX: Check prefix and ID component, allow sequence numbers
+  if (interestName.size() >= 2 && 
+      interestName.get(0).toUri() == "aggregate") {
+    
+    // Try to extract and compare component 1 (the ID)
     bool isMatch = false;
     
     try {
       // This will work for binary-encoded components like %04
       uint64_t requestedId = interestName.get(1).toNumber();
-      isMatch = (requestedId == m_nodeId);
+      isMatch = (requestedId == static_cast<uint64_t>(m_nodeId));
+      std::cout << "\nChecking if ID " << requestedId << " matches node ID " 
+                << m_nodeId << ": " << (isMatch ? "yes" : "no") << std::endl;
     }
-    catch (const std::exception&) {
+    catch (const std::exception& e) {
       // Fallback to string comparison for non-numeric components
       isMatch = (std::to_string(m_nodeId) == interestName.get(1).toUri());
     }

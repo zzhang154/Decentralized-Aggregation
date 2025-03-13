@@ -1,7 +1,19 @@
-// AggregateStrategy.cpp
+// Add explicit include for GlobalValue at the top with other includes:
+#include "ns3/core-module.h"
+#include "ns3/global-value.h"  // Add this explicit include
+
+// Add this include near the top, with other includes
 #include "AggregateStrategy.hpp"
 #include "ns3/ndnSIM/NFD/daemon/table/fib.hpp"
 #include <ndn-cxx/data.hpp>
+
+// Add these NS3-related includes
+#include "ns3/node-container.h"
+#include "ns3/node-list.h"
+#include "ns3/simulator.h"
+#include "ns3/uinteger.h" // Add this for UintegerValue
+#include "ns3/config.h"   // Add this for Config::GetGlobal
+
 NS_LOG_COMPONENT_DEFINE("ndn.AggregateStrategy");
 
 namespace nfd {
@@ -30,16 +42,86 @@ NFD_REGISTER_STRATEGY(AggregateStrategy);
 AggregateStrategy::AggregateStrategy(Forwarder& forwarder, const Name& name)
 : Strategy(forwarder)
   , m_forwarder(forwarder) // <-- The KEY fix: store forwarder reference
+  , m_nodeId(ns3::NodeContainer::GetGlobal().Get(ns3::Simulator::GetContext())->GetId() + 1)
+  , m_nodeRole(NodeRole::UNKNOWN)
+  , m_logicalId(0)
 {
   // Set the instance name explicitly
   this->setInstanceName(name);
+
+  // Determine node role and logical ID for logging
+  determineNodeRole();
+  std::cout << getNodeRoleString() << " initialized AggregateStrategy" << std::endl;
 
   // Register for PIT expiration
   registerPitExpirationCallback();
 
   std::cout << "AggregateStrategy initialized for Forwarder." << std::endl;
-  std::cout << "Strategy will use virtual method overrides." << std::endl << std::flush;
-    
+  std::cout << "Strategy will use virtual method overrides." << std::endl << std::flush;  
+}
+
+// Add these new methods:
+void 
+AggregateStrategy::determineNodeRole() 
+{
+  // Get total nodes in simulation
+  uint32_t totalNodes = ns3::NodeContainer::GetGlobal().GetN();
+  
+  // Get nodeCount from GlobalValue system
+  uint32_t nodeCount = 0;
+  ns3::UintegerValue val;
+  bool exists = false;
+  
+  // Use GetValueByNameFailSafe instead - this returns a bool
+  exists = ns3::GlobalValue::GetValueByNameFailSafe("NodeCount", val);
+  
+  if (exists) {
+    nodeCount = val.Get();
+    std::cout << "Strategy found nodeCount=" << nodeCount << " from GlobalValue" << std::endl;
+  } else {
+    // Fallback if not found
+    nodeCount = std::max(2u, totalNodes / 3);
+    std::cout << "Strategy using fallback nodeCount=" << nodeCount << std::endl;
+  }
+  
+  // Calculate topology elements - match exactly with aggregate-sum-simulation.cpp
+  uint32_t numRackAggregators = nodeCount;  // One rack aggregator per producer
+  uint32_t numCoreAggregators = (nodeCount > 1) ? std::max(1u, nodeCount / 4) : 0;
+  
+  // Get 0-based node index (m_nodeId is already correctly set in constructor)
+  uint32_t nodeIndex = m_nodeId - 1;
+  
+  // Now determine role based on index ranges from the topology creation
+  if (nodeIndex < nodeCount) {
+    // First nodeCount nodes are producers (0 to nodeCount-1)
+    m_nodeRole = NodeRole::PRODUCER;
+    m_logicalId = nodeIndex + 1;  // 1-indexed for display
+  }
+  else if (nodeIndex < nodeCount + numRackAggregators) {
+    // Next numRackAggregators nodes are rack aggregators
+    m_nodeRole = NodeRole::RACK_AGG;
+    m_logicalId = nodeIndex - nodeCount + 1;  // 1-indexed for display
+  }
+  else {
+    // Remaining nodes are core aggregators
+    m_nodeRole = NodeRole::CORE_AGG;
+    m_logicalId = nodeIndex - (nodeCount + numRackAggregators) + 1;  // 1-indexed for display
+  }
+}
+
+std::string 
+AggregateStrategy::getNodeRoleString() const 
+{
+  switch (m_nodeRole) {
+    case NodeRole::PRODUCER:
+      return "P" + std::to_string(m_logicalId);
+    case NodeRole::RACK_AGG:
+      return "R" + std::to_string(m_logicalId);
+    case NodeRole::CORE_AGG:
+      return "C" + std::to_string(m_logicalId);
+    default:
+      return "NODE " + std::to_string(m_nodeId);
+  }
 }
 
 // Add this new method that handles the event
@@ -100,7 +182,8 @@ void
 AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
                                         const shared_ptr<pit::Entry>& pitEntry) 
 {
-  std::cout << "STRATEGY received Interest: " << interest.getName() 
+  std::cout << '\n' << getNodeRoleString()
+          << " - STRATEGY received Interest: " << interest.getName() 
           << " via " << ingress.face.getId() 
           << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
           << "s" << std::endl << std::flush;
@@ -272,6 +355,48 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
   if (!pitInfo->pendingIds.empty()) {
     std::cout << "If some IDs are still pending" << std::endl << std::flush;
     // ** 3. Perform Interest Splitting based on routing (FIB) to minimize redundant requests **
+
+    // OPTIMIZATION: Special case for single-ID interests that are already atomic
+    if (pitInfo->pendingIds.size() == 1 && 
+        interestName.get(0).toUri() == "aggregate") {
+        
+        // This is already an atomic interest with one ID - no need for splitting
+        int singleId = *pitInfo->pendingIds.begin();
+        std::cout << "OPTIMIZATION: Direct forwarding single-ID Interest " << interestName.toUri() 
+                  << " (ID: " << singleId << ")" << std::endl;
+                  
+        // Create a simplified path to look up in FIB
+        Name simplePath("/aggregate");
+        simplePath.appendNumber(singleId);
+                  
+        // Look up FIB entry using the simplified path
+        Fib& fib = m_forwarder.getFib();
+        const fib::Entry& fibEntry = fib.findLongestPrefixMatch(simplePath);
+
+        if (!fibEntry.getPrefix().empty() && !fibEntry.getNextHops().empty()) {
+            const fib::NextHop& nh = *fibEntry.getNextHops().begin();
+            Face& outFace = nh.getFace();
+            
+            // Replace lines 297-307 with this:
+
+            std::cout << ">> Direct forwarding single-ID Interest " << interestName.toUri() 
+            << " via face " << outFace.getId()
+            << " (FIB match: " << fibEntry.getPrefix().toUri() << ")" << std::endl;
+
+            // Forward the original interest directly
+            this->sendInterest(interest, outFace, pitEntry);
+
+            // CRITICAL FIX: Ensure there's an OUT record for this face in the PIT entry
+            // Without this, Data cannot flow back correctly
+            if (pitEntry->getOutRecord(outFace) == pitEntry->out_end()) {
+            pitEntry->insertOrUpdateOutRecord(outFace, interest);
+            std::cout << "  >> Added missing OUT record to PIT entry for face " << outFace.getId() << std::endl;
+            }
+
+            // No need for sub-interest creation or parent mapping
+            return;
+        }
+    }
 
     // Group pending IDs by next-hop face (using FIB longest prefix match for each ID)
     std::map<Face*, std::vector<int>> faceToIdsMap;

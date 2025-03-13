@@ -38,6 +38,21 @@ public:
 private:
   // Store our own reference to the Forwarder
   Forwarder& m_forwarder;  // <-- The KEY fix
+  uint32_t m_nodeId;
+  
+  // Node role mapping
+  enum class NodeRole {
+    PRODUCER,    // P1, P2, etc.
+    RACK_AGG,    // R1, R2, etc. 
+    CORE_AGG,    // C1, C2, etc.
+    UNKNOWN
+  };
+  
+  NodeRole m_nodeRole;
+  int m_logicalId;  // 1-based ID within role group
+  
+  void determineNodeRole();
+  std::string getNodeRoleString() const;
 
   // Add this method to register for PIT expiration events
   void registerPitExpirationCallback();

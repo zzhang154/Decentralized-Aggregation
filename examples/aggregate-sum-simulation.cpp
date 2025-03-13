@@ -17,16 +17,87 @@ using namespace ns3;
 int nodeCount = 5;
 NodeContainer nodes;
 
+// Add these to the global variables section:
+std::vector<int> m_producerIds;
+std::vector<int> m_rackAggregatorIds;
+std::vector<int> m_coreAggregatorIds;
+
+
+// Declare the NodeCount global value (must be at global scope)
+static ns3::GlobalValue g_nodeCount("NodeCount",
+  "Number of consumer-producer nodes",
+  ns3::UintegerValue(2), // Default value
+  ns3::MakeUintegerChecker<uint32_t>(1, 100)); // Min and max values
+
+/**
+ * Print ASCII diagram of the network topology with perfect alignment
+ */
+void printTopologyDiagram(int numRacks, int numRackAggregators, int numCoreAggregators, int nodeCount) {
+  std::cout << "\n=== TOPOLOGY DIAGRAM ===" << std::endl;
+
+  const int labelWidth = 17;
+  const int nodeSpacing = 7;  // increased spacing for clarity
+
+  // Helper lambda to center connectors
+  auto printConnectors = [&](int count, int offset) {
+    std::cout << std::string(labelWidth, ' ');
+    for (int i = 0; i < count; ++i) {
+      std::cout << std::string(offset, ' ') << "|";
+      if (i < count - 1)
+        std::cout << std::string(nodeSpacing - offset - 1, ' ');
+    }
+    std::cout << std::endl;
+  };
+
+  // Core Layer
+  std::cout << std::left << std::setw(labelWidth) << "Core Layer:";
+  for (int i = 0; i < numCoreAggregators; i++) {
+    std::cout << "[C" << (i + 1) << "]";
+    if (i < numCoreAggregators - 1)
+      std::cout << std::string(nodeSpacing - 3, ' ');
+  }
+  std::cout << std::endl;
+
+  // Connectors Core to Rack Aggregators
+  printConnectors(numRackAggregators, 1);
+
+  // Rack Aggregators
+  std::cout << std::left << std::setw(labelWidth) << "Rack Aggregators:";
+  for (int i = 0; i < numRackAggregators; i++) {
+    std::cout << "[R" << (i + 1) << "]";
+    if (i < numRackAggregators - 1)
+      std::cout << std::string(nodeSpacing - 3, ' ');
+  }
+  std::cout << std::endl;
+
+  // Connectors Rack Aggregators to Producers
+  printConnectors(numRacks, 1);
+
+  // Producers
+  std::cout << std::left << std::setw(labelWidth) << "Producers:";
+  for (int i = 0; i < nodeCount; i++) {
+    std::cout << "[P" << (i + 1) << "]";
+    if (i < nodeCount - 1)
+      std::cout << std::string(nodeSpacing - 3, ' ');
+  }
+  std::cout << std::endl << std::endl;
+}
+
 /**
  * Initialize simulation: parse command line args and set up logging
  */
 void initializeSimulation(int argc, char* argv[]) {
   std::cout << "=== INITIALIZING SIMULATION ===" << std::endl;
   
-  // Parse command line arguments
+  // Parse command line arguments first
   CommandLine cmd;
-  cmd.AddValue("nodeCount", "Number of nodes in the network", nodeCount);
+  cmd.AddValue("nodeCount", "Number of consumer-producer in the network", nodeCount);
   cmd.Parse(argc, argv);
+
+  // Now bind to the existing global value (it's already been declared above)
+  ns3::GlobalValue::Bind("NodeCount", ns3::UintegerValue(nodeCount));
+  
+  std::cout << "Set global NodeCount=" << nodeCount << std::endl;
   
   // Set up NS-3 logging
   LogComponentEnable("ndn.AggregateStrategy", LOG_LEVEL_INFO);
@@ -46,84 +117,157 @@ void initializeSimulation(int argc, char* argv[]) {
 }
 
 /**
- * Create nodes and network topology
+ * Create nodes and data center-like network topology with aggregator nodes
  */
 void createTopology() {
-  std::cout << "=== CREATING TOPOLOGY ===" << std::endl;
+  std::cout << "=== CREATING DATA CENTER TOPOLOGY ===" << std::endl;
   
-  // Create nodes
-  nodes.Create(nodeCount);
+  // Exactly one consumer/producer node per rack as requested
+  int numRacks = nodeCount; 
+  int numRackAggregators = numRacks;
+  int numCoreAggregators = (numRacks > 1) ? std::max(1, numRacks / 4) : 0;
   
-  // Set up network links (chain topology)
+  int totalNodes = nodeCount + numRackAggregators + numCoreAggregators;
+  
+  std::cout << "Topology configuration:" << std::endl
+            << "  " << nodeCount << " producer/consumer nodes (1 per rack)" << std::endl
+            << "  " << numRacks << " racks" << std::endl
+            << "  " << numRackAggregators << " rack-level aggregators" << std::endl
+            << "  " << numCoreAggregators << " core aggregators" << std::endl
+            << "  " << totalNodes << " total nodes" << std::endl;
+  
+  // Create all nodes
+  nodes.Create(totalNodes);
+  
+  // Assign node IDs
+  for (int i = 0; i < nodeCount; i++) {
+    m_producerIds.push_back(i);
+  }
+  
+  for (int i = 0; i < numRackAggregators; i++) {
+    m_rackAggregatorIds.push_back(nodeCount + i);
+  }
+  
+  for (int i = 0; i < numCoreAggregators; i++) {
+    m_coreAggregatorIds.push_back(nodeCount + numRackAggregators + i);
+  }
+  
+  // Set up network links
   PointToPointHelper p2p;
-  p2p.SetChannelAttribute("Delay", StringValue("10ms"));
-  p2p.SetDeviceAttribute("DataRate", StringValue("1Mbps"));
+  p2p.SetChannelAttribute("Delay", StringValue("5ms"));
+  p2p.SetDeviceAttribute("DataRate", StringValue("10Gbps"));
   
-  for (int i = 0; i < nodeCount - 1; ++i) {
-    NodeContainer link(nodes.Get(i), nodes.Get(i+1));
-    NetDeviceContainer devices = p2p.Install(link);
-    std::cout << "  Created link: Node " << i << " ←→ Node " << (i+1) << std::endl;
-  }
+  // Print ASCII diagram of the topology
+  printTopologyDiagram(numRacks, numRackAggregators, numCoreAggregators, nodeCount);
   
-  // Enable pcap tracing
-  p2p.EnablePcapAll("ndn-interests");
+  std::cout << "=== CREATING LINKS ===" << std::endl;
   
-  // Verify connectivity
-  std::cout << "=== VERIFYING NODE CONNECTIVITY ===" << std::endl;
-  for (int i = 0; i < nodeCount; ++i) {
-    Ptr<Node> node = nodes.Get(i);
-    std::cout << "Node " << i + 1 << " has " << node->GetNDevices() << " devices" << std::endl;
+  // 1. Connect producer nodes to their rack aggregator (1:1 mapping)
+  for (int i = 0; i < numRacks; i++) {
+    int producerId = m_producerIds[i];
+    int rackAggregatorId = m_rackAggregatorIds[i];
     
-    std::cout << "  Connected to: ";
-    for (uint32_t d = 1; d < node->GetNDevices(); ++d) {
-      Ptr<NetDevice> dev = node->GetDevice(d);
-      Ptr<Channel> channel = dev->GetChannel();
-      if (channel) {
-        for (std::size_t j = 0; j < channel->GetNDevices(); ++j) {
-          Ptr<NetDevice> otherDev = channel->GetDevice(j);
-          if (otherDev != dev) {
-            std::cout << "NODE " << otherDev->GetNode()->GetId() << " ";
-          }
-        }
-      }
-    }
-    std::cout << std::endl;
+    NodeContainer link(nodes.Get(producerId), nodes.Get(rackAggregatorId));
+    NetDeviceContainer devices = p2p.Install(link);
+    std::cout << "  Created link: Producer " << (i + 1) 
+              << " ←→ Rack Aggregator " << (i + 1) << std::endl;
   }
+  
+  // 2. Connect rack aggregators to core aggregators (if applicable)
+  if (numCoreAggregators > 0) {
+    for (int i = 0; i < numRacks; i++) {
+      int rackAggregatorId = m_rackAggregatorIds[i];
+      int coreAggregatorId = m_coreAggregatorIds[i % numCoreAggregators];
+      
+      NodeContainer link(nodes.Get(rackAggregatorId), nodes.Get(coreAggregatorId));
+      NetDeviceContainer devices = p2p.Install(link);
+      std::cout << "  Created link: Rack Aggregator " << (i + 1) 
+                << " ←→ Core Aggregator " << ((i % numCoreAggregators) + 1) << std::endl;
+    }
+  }
+  
+  // 3. If multiple core aggregators, connect them in a ring
+  if (numCoreAggregators > 1) {
+    for (int i = 0; i < numCoreAggregators; i++) {
+      int j = (i + 1) % numCoreAggregators;
+      int coreId1 = m_coreAggregatorIds[i];
+      int coreId2 = m_coreAggregatorIds[j];
+      
+      NodeContainer link(nodes.Get(coreId1), nodes.Get(coreId2));
+      NetDeviceContainer devices = p2p.Install(link);
+      std::cout << "  Created link: Core Aggregator " << (i + 1) 
+                << " ←→ Core Aggregator " << (j + 1) << std::endl;
+    }
+  }
+  
+  // Node index explanation
+  std::cout << "\n=== NODE INDEX MAPPING ===" << std::endl;
+  std::cout << "Producer/Consumer nodes:       Indices 0-" << (nodeCount-1)
+            << " (Logical IDs 1-" << nodeCount << ")" << std::endl;
+  std::cout << "Rack Aggregator nodes:         Indices " << nodeCount << "-" 
+            << (nodeCount+numRackAggregators-1) << std::endl;
+  std::cout << "Core Aggregator nodes:         Indices " << (nodeCount+numRackAggregators) << "-" 
+            << (totalNodes-1) << std::endl;
 }
 
 /**
- * Install NDN stack and strategy
+ * Install NDN stack and strategy selectively
  */
 void installNdnStack() {
-  std::cout << "=== INSTALLING NDN STACK ===" << std::endl;
+  std::cout << "\n=== INSTALLING NDN STACK ===" << std::endl;
   
-  // Install NDN stack on all nodes
+  // Install basic NDN stack on all nodes
   ns3::ndn::StackHelper ndnHelper;
 
   // Disable content store (CS) completely
-  ndnHelper.setCsSize(0); // Use setCsSize instead of SetCsAttribute
-
+  ndnHelper.setCsSize(0);
   ndnHelper.InstallAll();
   
-  // Set the custom AggregateStrategy for the /aggregate prefix
-  ns3::ndn::StrategyChoiceHelper::Install(nodes, "/aggregate", 
+  // Create node containers for different types
+  NodeContainer aggregatorNodes;
+  for (int id : m_rackAggregatorIds) {
+    aggregatorNodes.Add(nodes.Get(id));
+  }
+  for (int id : m_coreAggregatorIds) {
+    aggregatorNodes.Add(nodes.Get(id));
+  }
+  
+  NodeContainer producerNodes;
+  for (int id : m_producerIds) {
+    producerNodes.Add(nodes.Get(id));
+  }
+  
+  // Set the custom AggregateStrategy ONLY for aggregator nodes
+  ns3::ndn::StrategyChoiceHelper::Install(aggregatorNodes, "/aggregate", 
                                          "/localhost/nfd/strategy/aggregate");
-  std::cout << "Installed AggregateStrategy for /aggregate prefix on all nodes" << std::endl;
+  std::cout << "Installed AggregateStrategy for /aggregate prefix on " 
+            << aggregatorNodes.GetN() << " aggregator nodes" << std::endl;
 
+  // Use a simple forwarding strategy for producer/consumer nodes
+  ns3::ndn::StrategyChoiceHelper::Install(producerNodes, "/aggregate", 
+                                        "/localhost/nfd/strategy/best-route");
+  std::cout << "Installed best-route strategy for /aggregate prefix on " 
+            << producerNodes.GetN() << " producer/consumer nodes" << std::endl;
 }
 
 /**
  * Install producer applications
  */
 void installProducers() {
-  std::cout << "=== INSTALLING PRODUCERS ===" << std::endl;
+  std::cout << "\n=== INSTALLING PRODUCERS ===" << std::endl;
   
-  for (int i = 0; i < nodeCount; ++i) {
-    Ptr<Node> node = nodes.Get(i);
-    std::cout << "Installing producer on node " << i+1 << std::endl;
+  // Install producers only on regular nodes (not aggregators)
+  for (int i = 0; i < m_producerIds.size(); ++i) {
+    int nodeId = m_producerIds[i];
+    Ptr<Node> node = nodes.Get(nodeId);
+    
+    // Use 1-based node IDs for consistency with original code
+    int producerId = i + 1;
+    
+    std::cout << "Installing producer on node " << producerId << " (index " << nodeId << ")" << std::endl;
     
     ns3::ndn::AppHelper producerHelper("ValueProducer");
-    producerHelper.SetAttribute("NodeID", IntegerValue(i+1)); // 1-based ID
+    producerHelper.SetAttribute("NodeID", IntegerValue(producerId));
     producerHelper.Install(node);
   }
 }
@@ -132,7 +276,7 @@ void installProducers() {
  * Configure routing
  */
 void configureRouting() {
-  std::cout << "=== CONFIGURING ROUTING ===" << std::endl;
+  std::cout << "\n=== CONFIGURING ROUTING ===" << std::endl;
   
   ns3::ndn::GlobalRoutingHelper grHelper;
   grHelper.InstallAll();
@@ -172,31 +316,35 @@ void configureRouting() {
  * Install consumer applications
  */
 void installConsumers() {
-  std::cout << "=== INSTALLING CONSUMERS ===" << std::endl;
+  std::cout << "\n=== INSTALLING CONSUMERS ===" << std::endl;
   
-  for (int i = 0; i < nodeCount; ++i) {
-    Ptr<Node> node = nodes.Get(i);
+  // Install consumers only on regular nodes (not aggregators)
+  for (int i = 0; i < m_producerIds.size(); ++i) {
+    int nodeId = m_producerIds[i];
+    Ptr<Node> node = nodes.Get(nodeId);
+    
+    // Use 1-based node IDs for consistency with original code
+    int consumerId = i + 1;
     
     // Build interest name containing all other node IDs
     ::ndn::Name interestName("/aggregate");
-    for (int j = 0; j < nodeCount; ++j) {
-      if (j == i) continue; // exclude itself
-      interestName.appendNumber(j+1);
+    for (int j = 0; j < m_producerIds.size(); ++j) {
+      int otherId = j + 1;  // 1-based ID
+      if (otherId == consumerId) continue; // exclude itself
+      interestName.appendNumber(otherId);
     }
     
-    std::cout << "Node " << i+1 << " will request: " << interestName.toUri() << std::endl;
+    std::cout << "Node " << consumerId << " (index " << nodeId 
+              << ") will request: " << interestName.toUri() << std::endl;
     
     ns3::ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
     consumerHelper.SetAttribute("Frequency", DoubleValue(1.0));
     consumerHelper.SetAttribute("Prefix", StringValue(interestName.toUri()));
-
-    // Add this line:
-    consumerHelper.SetAttribute("LifeTime", StringValue("2s")); // Longer lifetime for debugging
+    consumerHelper.SetAttribute("LifeTime", StringValue("2s"));
     
     ApplicationContainer apps = consumerHelper.Install(node);
-    std::cout << "Installed consumer app on node " << i+1 << std::endl;
+    std::cout << "Installed consumer app on node " << consumerId << std::endl;
     
-    // Set explicit start time
     apps.Start(Seconds(1.0));
     std::cout << "  Consumer will start at 1.0s" << std::endl;
   }
