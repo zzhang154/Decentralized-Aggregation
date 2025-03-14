@@ -291,6 +291,25 @@ void configureRouting() {
     
     grHelper.AddOrigins(prefixUri, nodes.Get(i));
   }
+
+  // NEW: Register base /aggregate prefix for all aggregator nodes
+  std::cout << "\nRegistering /aggregate base prefix for aggregator nodes:" << std::endl;
+  
+  // Loop through rack aggregators
+  for (int i = 0; i < m_rackAggregatorIds.size(); ++i) {
+    int aggNodeId = m_rackAggregatorIds[i];
+    grHelper.AddOrigins("/aggregate", nodes.Get(aggNodeId));
+    std::cout << "  - Added /aggregate origin to Rack Aggregator " 
+              << (i+1) << " (node index " << aggNodeId << ")" << std::endl;
+  }
+  
+  // Loop through core aggregators
+  for (int i = 0; i < m_coreAggregatorIds.size(); ++i) {
+    int aggNodeId = m_coreAggregatorIds[i];
+    grHelper.AddOrigins("/aggregate", nodes.Get(aggNodeId));
+    std::cout << "  - Added /aggregate origin to Core Aggregator " 
+              << (i+1) << " (node index " << aggNodeId << ")" << std::endl;
+  }
   
   grHelper.CalculateRoutes();
   std::cout << "Route calculation complete" << std::endl;
@@ -337,8 +356,9 @@ void installConsumers() {
     std::cout << "Node " << consumerId << " (index " << nodeId 
               << ") will request: " << interestName.toUri() << std::endl;
     
-    ns3::ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
-    consumerHelper.SetAttribute("Frequency", DoubleValue(1.0));
+    // ns3::ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
+    ns3::ndn::AppHelper consumerHelper("ValueProducer");
+    // consumerHelper.SetAttribute("Frequency", DoubleValue(1.0)); 
     consumerHelper.SetAttribute("Prefix", StringValue(interestName.toUri()));
     consumerHelper.SetAttribute("LifeTime", StringValue("2s"));
     
@@ -405,7 +425,7 @@ int main(int argc, char* argv[]) {
   // Configure and run the simulation
   configureSimulation();
   
-  Simulator::Stop(Seconds(1.5));
+  Simulator::Stop(Seconds(5.0));
   Simulator::Run();
   Simulator::Destroy();
   

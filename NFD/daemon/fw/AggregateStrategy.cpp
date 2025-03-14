@@ -124,18 +124,6 @@ AggregateStrategy::getNodeRoleString() const
   }
 }
 
-// Add this new method that handles the event
-void 
-AggregateStrategy::onDataReceived(const Data& data, const FaceEndpoint& ingress,
-                                 const shared_ptr<pit::Entry>& pitEntry)
-{
-  // Call the parent implementation first
-  Strategy::afterReceiveData(data, ingress, pitEntry);
-  
-  // Then run your own handler implementation
-  this->afterReceiveData(data, ingress, pitEntry);  // Now safe to call
-}
-
 // Helper: parse interest name of form /aggregate/<id1>/<id2>/... into a set of integers
 std::set<int> 
 AggregateStrategy::parseRequestedIds(const Interest& interest) const {
@@ -417,9 +405,6 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       // Link new interest to wait for the subset's Data
       Name subsetDataName = entryRef.getName(); // data will use the same name as interest
       m_waitingInterests[subsetDataName].push_back(pitEntry);
-      // Now, proceed to forward requests for the remaining (non-overlap) IDs only
-      // (We break out of loop to perform forwarding of the rest)
-      break;
     }
   }
 
@@ -588,7 +573,7 @@ void
 AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingress,
                                    const shared_ptr<pit::Entry>& pitEntry) 
 {
-  Strategy::afterReceiveData(data, ingress, pitEntry); // call base to forward data to pending faces
+  // Strategy::afterReceiveData(data, ingress, pitEntry); // call base to forward data to pending faces
   Name dataName = data.getName();
   std::cout << "<< Data received: " << dataName.toUri() 
             << " from face " << ingress.face.getId() << std::endl << std::flush;

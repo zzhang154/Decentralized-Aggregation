@@ -57,10 +57,6 @@ private:
   // Add this method to register for PIT expiration events
   void registerPitExpirationCallback();
 
-  // Handler for data reception
-  void onDataReceived(const Data& data, const FaceEndpoint& ingress, 
-    const shared_ptr<pit::Entry>& pitEntry);
-
   // Structure to hold strategy-specific info for each PIT entry (interest)
   struct AggregatePitInfo : public StrategyInfo {
     // (BUG FIX) Add this static method that returns a unique ID for this strategy info type
