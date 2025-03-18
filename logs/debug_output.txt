@@ -1,7 +1,7 @@
 Waf: Entering directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Waf: Leaving directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Build commands will be stored in build/compile_commands.json
-'build' finished successfully (1.050s)
+'build' finished successfully (1.105s)
 GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1
 Copyright (C) 2022 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
@@ -122,11 +122,14 @@ Node 3 (index 2) will request: /aggregate/%01/%02
 Installed consumer app on node 3
   Consumer will start at 1.0s
 === CONFIGURING SIMULATION ===
-[Detaching after vfork from child process 866351]
+[Detaching after vfork from child process 882254]
 L3RateTracer installed, output to results/rate-trace.txt
 Tracers installed. Simulation will run for 5.0 seconds
 
 === ADDING DETAILED NDN PACKET TRACING ===
+Adding low-level NDN tracing to rack aggregator 1
+Adding low-level NDN tracing to rack aggregator 2
+Adding low-level NDN tracing to rack aggregator 3
 Added MAC-layer packet tracing
 
 === VERIFYING INSTALLED STRATEGIES ===
@@ -468,6 +471,7 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 3
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 1
+  [Strategy] Extracted ID 2 from cross-strategy PIT entry
 >> Received Interest /aggregate/%02 from face 258 requesting IDs = { 2 }
 If some IDs are still pending
 DEBUG: FIB table has 6 entries
@@ -498,6 +502,7 @@ DEBUG: Current FIB entries:
     * Face: 257 Cost: 1
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 3
+  [Strategy] Extracted ID 3 from cross-strategy PIT entry
 >> Received Interest /aggregate/%03 from face 258 requesting IDs = { 3 }
 If some IDs are still pending
 DEBUG: FIB table has 6 entries
@@ -528,6 +533,7 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 3
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 3
+  [Strategy] Extracted ID 1 from cross-strategy PIT entry
 >> Received Interest /aggregate/%01 from face 258 requesting IDs = { 1 }
 If some IDs are still pending
 DEBUG: FIB table has 6 entries
@@ -595,10 +601,13 @@ Node 1 attempting explicit forwarding of /aggregate/%01
   Found network interface: netdev://[00:00:00:00:00:01] (ID: 257)
 Node 1 EXPLICITLY forwarding data /aggregate/%01 to network face 257
 MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=359
+LOW LEVEL [R2]: Data received /aggregate/%02 for PIT entry /aggregate/%02 on face 257
 MAC TX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=359
 MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
+LOW LEVEL [R3]: Data received /aggregate/%03 for PIT entry /aggregate/%03 on face 257
 MAC TX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=359
 MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
+LOW LEVEL [R1]: Data received /aggregate/%01 for PIT entry /aggregate/%01 on face 257
 MAC TX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=359
 MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
 MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=359
@@ -767,10 +776,13 @@ Time: 3s
 Time: 4s
 !! PIT EXPIRED: /aggregate/%02/%03 at 4.00s
   [Expired] 2 pending IDs: { 2 3 }
+LOW LEVEL [R1]: PIT entry expiring /aggregate/%02/%03
 !! PIT EXPIRED: /aggregate/%01/%03 at 4.00s
   [Expired] 2 pending IDs: { 1 3 }
+LOW LEVEL [R2]: PIT entry expiring /aggregate/%01/%03
 !! PIT EXPIRED: /aggregate/%01/%02 at 4.00s
   [Expired] 2 pending IDs: { 1 2 }
+LOW LEVEL [R3]: PIT entry expiring /aggregate/%01/%02
 !! PIT EXPIRED: /aggregate/%02/%03 at 4.00s
   [Expired] 2 pending IDs: { 2 3 }
 !! PIT EXPIRED: /aggregate/%01/%03 at 4.00s
@@ -778,6 +790,6 @@ Time: 4s
 !! PIT EXPIRED: /aggregate/%01/%02 at 4.00s
   [Expired] 0 pending IDs: { }
 Time: 5s
-[Inferior 1 (process 865637) exited normally]
+[Inferior 1 (process 881570) exited normally]
 [Program stopped: printing stack trace]Error while running hook_stop:
 No stack.

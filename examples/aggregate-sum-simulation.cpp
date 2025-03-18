@@ -429,6 +429,38 @@ TraceMacRx(std::string context, Ptr<const Packet> p)  // Added context parameter
 // Keep the connection method in setupDetailedTracing() the same
 void setupDetailedTracing() {
   std::cout << "\n=== ADDING DETAILED NDN PACKET TRACING ===" << std::endl;
+
+  // Add this new code for low-level NDN tracing:
+  for (int i = 0; i < m_rackAggregatorIds.size(); ++i) {
+    Ptr<Node> node = nodes.Get(m_rackAggregatorIds[i]);
+    auto l3proto = node->GetObject<ns3::ndn::L3Protocol>();
+    if (l3proto) {
+      std::cout << "Adding low-level NDN tracing to rack aggregator " << (i+1) << std::endl;
+      
+      // Get a reference to the forwarder
+      nfd::Forwarder& forwarder = *(l3proto->getForwarder());
+      
+      // Use NFD's internal signal with correct signature: (const pit::Entry&, const face::Face&, const Data&)
+      int nodeId = i+1;
+      forwarder.beforeSatisfyInterest.connect(
+        [nodeId](const nfd::pit::Entry& pitEntry, const nfd::face::Face& face, const ::ndn::Data& data) {
+          std::string name = data.getName().toUri();
+          // Only show application packets (filter only "/aggregate" prefix)
+          if (name.compare(0, 10, "/aggregate") == 0) {
+            std::cout << "LOW LEVEL [R" << nodeId << "]: Data received " 
+                      << name << " for PIT entry " << pitEntry.getName() 
+                      << " on face " << face.getId() << std::endl;
+          }
+      });
+      
+      // Connect to PIT entry expiration signal
+      forwarder.beforeExpirePendingInterest.connect(
+        [nodeId](const nfd::pit::Entry& pitEntry) {
+          std::cout << "LOW LEVEL [R" << nodeId << "]: PIT entry expiring " 
+                    << pitEntry.getName() << std::endl;
+      });
+    }
+  }
   
   // Use the Connect method (not ConnectWithoutContext)
   Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacTx", 

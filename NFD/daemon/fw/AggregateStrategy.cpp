@@ -158,10 +158,51 @@ AggregateStrategy::AggregatePitInfo*
 AggregateStrategy::getAggregatePitInfo(const std::shared_ptr<pit::Entry>& pitEntry) {
   auto infoPair = pitEntry->insertStrategyInfo<AggregatePitInfo>();
   AggregatePitInfo* info = static_cast<AggregatePitInfo*>(infoPair.first);
+  
   if (infoPair.second) {
-    // Newly inserted info, initialize fields
+    // Newly inserted info - this means the entry was likely created by another strategy
+    // Initialize fields properly based on the interest name
     info->partialSum = 0;
+    info->neededIds.clear();
+    info->pendingIds.clear();
+    
+    // Extract ID information from the PIT entry name
+    const Name& entryName = pitEntry->getName();
+    if (entryName.size() >= 2 && entryName.get(0).toUri() == "aggregate") {
+      // For single ID requests like /aggregate/%02
+      if (entryName.size() == 2) {
+        std::string component = entryName.get(1).toUri();
+        if (component.length() > 1 && component[0] == '%') {
+          try {
+            int id = std::stoi(component.substr(1));
+            info->neededIds.insert(id);
+            info->pendingIds.insert(id);
+            std::cout << "  [Strategy] Extracted ID " << id << " from cross-strategy PIT entry" << std::endl;
+          }
+          catch (const std::exception& e) {
+            std::cout << "  [Strategy] Failed to parse ID from " << component << std::endl;
+          }
+        }
+      }
+      // For multi-ID requests
+      else {
+        for (size_t i = 1; i < entryName.size(); i++) {
+          std::string component = entryName.get(i).toUri();
+          if (component.length() > 1 && component[0] == '%') {
+            try {
+              int id = std::stoi(component.substr(1));
+              info->neededIds.insert(id);
+              info->pendingIds.insert(id);
+            }
+            catch (const std::exception&) {
+              // Skip invalid components
+            }
+          }
+        }
+      }
+    }
   }
+  
   return info;
 }
 
