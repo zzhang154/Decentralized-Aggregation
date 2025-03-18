@@ -573,7 +573,7 @@ void
 AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingress,
                                    const shared_ptr<pit::Entry>& pitEntry) 
 {
-  // Strategy::afterReceiveData(data, ingress, pitEntry); // call base to forward data to pending faces
+  Strategy::afterReceiveData(data, ingress, pitEntry); // call base to forward data to pending faces
   Name dataName = data.getName();
   std::cout << "<< Data received: " << dataName.toUri() 
             << " from face " << ingress.face.getId() << std::endl << std::flush;

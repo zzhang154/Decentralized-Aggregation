@@ -218,7 +218,7 @@ ValueProducer::OnInterest(std::shared_ptr<const ::ndn::Interest> interest)
       // This will work for binary-encoded components like %04
       uint64_t requestedId = interestName.get(1).toNumber();
       isMatch = (requestedId == static_cast<uint64_t>(m_nodeId)); // Adjust for 1-based IDs in interests
-      std::cout << "\nChecking if ID " << requestedId << " matches node ID " 
+      std::cout << "Checking if ID " << requestedId << " matches node ID " 
                 << m_nodeId  << " (index " << m_nodeId << "): " 
                 << (isMatch ? "yes" : "no") << std::endl;
     }
@@ -272,20 +272,25 @@ ValueProducer::OnData(std::shared_ptr<const ::ndn::Data> data)
     try {
       uint64_t dataNodeId = dataName.get(1).toNumber();
       if (dataNodeId == static_cast<uint64_t>(m_nodeId)) {
-        // This is our own data - we MUST forward it through the NDN stack
-        std::cout << "Node " << m_nodeId << " detected self-produced data: " << dataName 
-                  << " (forwarding to network)" << std::endl;
-        isSelfProduced = true;
+        std::cout << "\nNode " << m_nodeId << " detected self-produced data: " 
+                  << dataName << " (injecting into network)" << std::endl;
         
-        // For self-produced data, we MUST call App::OnData to ensure proper forwarding
+        // First let NDN stack handle it
         App::OnData(data);
-        // Add this line:
-        Simulator::Schedule(MilliSeconds(50), &ValueProducer::DebugFaceStats, this);
-        return; // We're done - don't process our own data further
+        
+        // CRITICAL: Explicitly forward to network faces
+        ForwardDataToNetwork(data);
+        
+        return;
+        
+        // // 3. Optionally, schedule additional debug logging.
+        // Simulator::Schedule(MilliSeconds(50), &ValueProducer::DebugFaceStats, this);
+        
+        return; // Now we have injected the Data – no further local processing.
       }
     }
     catch (const std::exception& e) {
-      // If component isn't numeric, assume it's not our data
+      // If conversion fails, assume it's not self-produced.
     }
   }
 
@@ -414,7 +419,7 @@ ValueProducer::DebugFibEntries(const std::string& message)
 void
 ValueProducer::DebugFaceStats()
 {
-  std::cout << "----- FACE STATS FOR NODE " << m_nodeId << " -----" << std::endl;
+  std::cout << "\n----- FACE STATS FOR NODE " << m_nodeId << " -----" << std::endl;
   
   auto l3proto = GetNode()->GetObject<ns3::ndn::L3Protocol>();
   if (!l3proto) {
@@ -454,7 +459,81 @@ ValueProducer::DebugFaceStats()
     }
   }
   
-  std::cout << "------------------------------" << std::endl;
+  std::cout << "------------------------------" << std::endl << std::flush;
+}
+
+// Add this function to the ValueProducer class:
+
+void
+ValueProducer::ForwardDataToNetwork(std::shared_ptr<const ::ndn::Data> data)
+{
+  std::cout << "Node " << m_nodeId << " attempting explicit forwarding of " 
+            << data->getName() << std::endl;
+            
+  auto l3proto = GetNode()->GetObject<ns3::ndn::L3Protocol>();
+  if (!l3proto) {
+    std::cout << "ERROR: Could not get L3Protocol!" << std::endl;
+    return;
+  }
+  
+  // Get the FaceTable
+  const nfd::FaceTable& faceTable = l3proto->getFaceTable();
+  std::cout << "  Face Table size: " << faceTable.size() << std::endl;
+  
+  // We need to use forEachFace instead of trying to iterate directly
+  std::shared_ptr<nfd::Face> networkFace;
+  uint32_t networkFaceId = 0;
+  
+  // Use a safe method to loop through faces
+  for (const auto& faceId : faceTable) {
+    try {
+      if (faceId.getId() != m_face->getId()) {  // Skip the app face
+        auto transport = faceId.getTransport();
+        if (transport) {
+          std::string uriStr = transport->getLocalUri().toString();
+          if (uriStr.find("netdev://") == 0) {  // Only use network interfaces
+            // This is a network face
+            networkFace = l3proto->getFaceById(faceId.getId());
+            networkFaceId = faceId.getId();
+            std::cout << "  Found network interface: " << uriStr 
+                      << " (ID: " << networkFaceId << ")" << std::endl;
+            break;
+          }
+        }
+      }
+    }
+    catch (const std::exception& e) {
+      std::cout << "  Error processing face: " << e.what() << std::endl;
+    }
+  }
+  
+  if (networkFace) {
+    std::cout << "Node " << m_nodeId << " EXPLICITLY forwarding data " 
+              << data->getName() << " to network face " << networkFaceId 
+              << std::endl;
+              
+    // Send the data packet on the network face
+    networkFace->sendData(*data);
+    
+    // Debug to verify
+    Simulator::Schedule(MilliSeconds(10), &ValueProducer::DebugFaceStats, this);
+  }
+  else {
+    std::cout << "ERROR: No suitable network face found for forwarding!" << std::endl;
+    
+    // List all available faces to help diagnose
+    std::cout << "  Available faces:" << std::endl;
+    for (const auto& f : faceTable) {
+      try {
+        auto transport = f.getTransport();
+        std::string uriStr = transport ? transport->getLocalUri().toString() : "no-transport";
+        std::cout << "    Face ID " << f.getId() << ": " << uriStr << std::endl;
+      }
+      catch (const std::exception& e) {
+        std::cout << "    Face ID " << f.getId() << ": <error: " << e.what() << ">" << std::endl;
+      }
+    }
+  }
 }
 
 } // namespace ndn

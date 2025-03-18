@@ -11,6 +11,9 @@
 // Include the custom strategy
 #include "ns3/ndnSIM/NFD/daemon/fw/AggregateStrategy.hpp"
 
+#include "ns3/ndnSIM/NFD/daemon/fw/forwarder.hpp"
+#include "ns3/ndnSIM/NFD/daemon/table/strategy-choice.hpp"
+
 using namespace ns3;
 
 // Global variables
@@ -406,6 +409,67 @@ void configureSimulation() {
   std::cout << "Tracers installed. Simulation will run for 5.0 seconds" << std::endl;
 }
 
+
+
+// Add these functions outside of any other function (at file/global scope):
+
+// Trace callbacks MUST include the context parameter with this version of NS-3
+void
+TraceMacTx(std::string context, Ptr<const Packet> p)  // Added context parameter!
+{
+  std::cout << "MAC TX: " << context << " size=" << p->GetSize() << std::endl;
+}
+
+void
+TraceMacRx(std::string context, Ptr<const Packet> p)  // Added context parameter!
+{
+  std::cout << "MAC RX: " << context << " size=" << p->GetSize() << std::endl;
+}
+
+// Keep the connection method in setupDetailedTracing() the same
+void setupDetailedTracing() {
+  std::cout << "\n=== ADDING DETAILED NDN PACKET TRACING ===" << std::endl;
+  
+  // Use the Connect method (not ConnectWithoutContext)
+  Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacTx", 
+                 MakeCallback(&TraceMacTx));
+  
+  Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacRx", 
+                 MakeCallback(&TraceMacRx));
+  
+  std::cout << "Added MAC-layer packet tracing" << std::endl;
+  
+  // Print installed strategies on each node
+  std::cout << "\n=== VERIFYING INSTALLED STRATEGIES ===" << std::endl;
+  
+  for (uint32_t i = 0; i < nodes.GetN(); i++) {
+    Ptr<Node> node = nodes.Get(i);
+    auto l3 = node->GetObject<ns3::ndn::L3Protocol>();
+    if (!l3) continue;
+    
+    std::cout << "Node " << i << " strategies:" << std::endl;
+    auto& strategyChoice = l3->getForwarder()->getStrategyChoice();
+    
+    // We can only get a list of prefixes, not the mapping directly
+    std::vector<std::string> prefixesToCheck = {"/aggregate"};
+    for (const auto& prefix : prefixesToCheck) {
+      try {
+        // The fix: Convert ndn::Name to string with toUri()
+        std::string strategyName = strategyChoice.findEffectiveStrategy(
+            nfd::Name(prefix)).getInstanceName().toUri();
+        std::cout << "  " << prefix << " → " << strategyName << std::endl;
+      }
+      catch (const std::exception& e) {
+        std::cout << "  " << prefix << " → (no strategy): " << e.what() << std::endl;
+      }
+    }
+  }
+  
+  std::cout << "Detailed NDN packet tracing enabled" << std::endl;
+}
+
+
+
 /**
  * Main function
  */
@@ -424,6 +488,9 @@ int main(int argc, char* argv[]) {
   
   // Configure and run the simulation
   configureSimulation();
+
+  // Add detailed NDN packet tracing (new function call)
+  setupDetailedTracing();
   
   Simulator::Stop(Seconds(5.0));
   Simulator::Run();

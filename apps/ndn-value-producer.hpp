@@ -65,6 +65,9 @@ protected:
    */
   void SendOneInterest();
 
+  // Add to protected or private section:
+  void ForwardDataToNetwork(std::shared_ptr<const ::ndn::Data> data);
+
 private:
   int m_nodeId;               ///< Node ID to return as value
   ::ndn::Name m_prefix;       ///< Interest prefix to use for consumer role
