@@ -158,51 +158,10 @@ AggregateStrategy::AggregatePitInfo*
 AggregateStrategy::getAggregatePitInfo(const std::shared_ptr<pit::Entry>& pitEntry) {
   auto infoPair = pitEntry->insertStrategyInfo<AggregatePitInfo>();
   AggregatePitInfo* info = static_cast<AggregatePitInfo*>(infoPair.first);
-  
   if (infoPair.second) {
-    // Newly inserted info - this means the entry was likely created by another strategy
-    // Initialize fields properly based on the interest name
+    // Newly inserted info, initialize fields
     info->partialSum = 0;
-    info->neededIds.clear();
-    info->pendingIds.clear();
-    
-    // Extract ID information from the PIT entry name
-    const Name& entryName = pitEntry->getName();
-    if (entryName.size() >= 2 && entryName.get(0).toUri() == "aggregate") {
-      // For single ID requests like /aggregate/%02
-      if (entryName.size() == 2) {
-        std::string component = entryName.get(1).toUri();
-        if (component.length() > 1 && component[0] == '%') {
-          try {
-            int id = std::stoi(component.substr(1));
-            info->neededIds.insert(id);
-            info->pendingIds.insert(id);
-            std::cout << "  [Strategy] Extracted ID " << id << " from cross-strategy PIT entry" << std::endl;
-          }
-          catch (const std::exception& e) {
-            std::cout << "  [Strategy] Failed to parse ID from " << component << std::endl;
-          }
-        }
-      }
-      // For multi-ID requests
-      else {
-        for (size_t i = 1; i < entryName.size(); i++) {
-          std::string component = entryName.get(i).toUri();
-          if (component.length() > 1 && component[0] == '%') {
-            try {
-              int id = std::stoi(component.substr(1));
-              info->neededIds.insert(id);
-              info->pendingIds.insert(id);
-            }
-            catch (const std::exception&) {
-              // Skip invalid components
-            }
-          }
-        }
-      }
-    }
   }
-  
   return info;
 }
 
@@ -400,17 +359,49 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
         continue; // skip the current interest itself
     }
 
-    // Get the set of IDs for the existing pending interest
+    // Extract sequence components for comparison
+    Name::Component existingSeqComponent, newSeqComponent;
+    for (size_t i = 0; i < existingName.size(); i++) {
+      if (existingName[i].toUri().find("seq=") != std::string::npos) {
+        existingSeqComponent = existingName[i];
+        break;
+      }
+    }
+    for (size_t i = 0; i < interestName.size(); i++) {
+      if (interestName[i].toUri().find("seq=") != std::string::npos) {
+        newSeqComponent = interestName[i];
+        break;
+      }
+    }
+
+    // Only consider subset/superset if sequence numbers match
+    bool sequencesMatch = (existingSeqComponent == newSeqComponent) || 
+                          (existingSeqComponent.empty() && newSeqComponent.empty());
+                          
+    if (!sequencesMatch) {
+      continue; // Skip this entry if the sequence components don't match
+    }
+
+    // Get the set of IDs for the existing pending interest - with improved parsing
     std::set<int> existingIds;
     for (size_t i = 1; i < existingName.size(); ++i) {
-      // With this code that handles both formats:
+      // Skip sequence number components
+      if (existingName[i].toUri().find("seq=") != std::string::npos) {
+        continue;
+      }
+      
       if (existingName[i].isNumber()) {
-          existingIds.insert(existingName[i].toNumber());
-        } else {
-          try {
-            existingIds.insert(std::stoi(existingName[i].toUri()));
-          } catch (...) { }
-        }
+        existingIds.insert(existingName[i].toNumber());
+      } else {
+        try {
+          std::string component = existingName[i].toUri();
+          // Parse the %02 format
+          if (component.length() > 1 && component[0] == '%') {
+            component = component.substr(1);
+            existingIds.insert(std::stoi(component));
+          }
+        } catch (...) { }
+      }
     }
 
     // Check subset/superset relation
@@ -446,6 +437,9 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       // Link new interest to wait for the subset's Data
       Name subsetDataName = entryRef.getName(); // data will use the same name as interest
       m_waitingInterests[subsetDataName].push_back(pitEntry);
+      // Now, proceed to forward requests for the remaining (non-overlap) IDs only
+      // (We break out of loop to perform forwarding of the rest)
+      // break; // <-- REMOVE THIS LINE - it's causing the problem!
     }
   }
 
@@ -493,47 +487,61 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
                 << " IDs route to the same face (ID: " << outFace->getId() 
                 << ")." << std::endl;
       
-      // Create a new interest containing only the pending IDs instead of forwarding the original interest
-      std::vector<int> pendingIdsList(pitInfo->pendingIds.begin(), pitInfo->pendingIds.end());
-      std::sort(pendingIdsList.begin(), pendingIdsList.end());
-      
-      // Build name with only pending IDs: /aggregate/id1/id2/...
-      Name optimizedName;
-      optimizedName.append("aggregate");
-      for (int id : pendingIdsList) {
-        optimizedName.appendNumber(id);
+      // Check if the original interest already has exactly the IDs we need
+      bool needsRewrite = false;
+      std::set<int> originalInterestIds = parseRequestedIds(interest);
+      if (originalInterestIds != pitInfo->pendingIds) {
+        needsRewrite = true;
       }
       
-      // If the sequence number was in the original interest, preserve it
-      for (size_t i = 0; i < interest.getName().size(); i++) {
-        if (interest.getName()[i].toUri().find("seq=") != std::string::npos) {
-          optimizedName.append(interest.getName()[i]);
-          break;
-        }
-      }
+      if (needsRewrite) {
+        // Original code continues below - create a new interest with optimized IDs
+        std::vector<int> pendingIdsList(pitInfo->pendingIds.begin(), pitInfo->pendingIds.end());
+        std::sort(pendingIdsList.begin(), pendingIdsList.end());
 
-      std::cout << "  >> Creating optimized interest with only pending IDs: " 
-                << optimizedName << std::endl;
-                
-      // Create and forward the optimized interest
-      auto optimizedInterest = std::make_shared<Interest>(optimizedName);
-      optimizedInterest->setCanBePrefix(false);
-      optimizedInterest->setInterestLifetime(interest.getInterestLifetime());
-      
-      // Create a new PIT entry for the optimized interest instead of using the original one
-      auto newPitEntry = m_forwarder.getPit().insert(*optimizedInterest).first;
-      
-      // Store relationship between new and original PIT entries
-      AggregateSubInfo* subInfo = newPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
-      if (subInfo) {
-        subInfo->parentEntry = pitEntry;
+        // Build name with only pending IDs: /aggregate/id1/id2/...
+        Name optimizedName;
+        optimizedName.append("aggregate");
+        for (int id : pendingIdsList) {
+          optimizedName.appendNumber(id);
+        }
+
+        // If the sequence number was in the original interest, preserve it
+        for (size_t i = 0; i < interest.getName().size(); i++) {
+          if (interest.getName()[i].toUri().find("seq=") != std::string::npos) {
+            optimizedName.append(interest.getName()[i]);
+            break;
+          }
+        }
+
+        std::cout << "  >> Creating optimized interest with only pending IDs: " 
+                  << optimizedName << std::endl;
+                  
+        // Create and forward the optimized interest
+        auto optimizedInterest = std::make_shared<Interest>(optimizedName);
+        optimizedInterest->setCanBePrefix(false);
+        optimizedInterest->setInterestLifetime(interest.getInterestLifetime());
+
+        // Create a new PIT entry for the optimized interest instead of using the original one
+        auto newPitEntry = m_forwarder.getPit().insert(*optimizedInterest).first;
+
+        // Store relationship between new and original PIT entries
+        AggregateSubInfo* subInfo = newPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
+        if (subInfo) {
+          subInfo->parentEntry = pitEntry;
+        }
+
+        // Add to parent map to track relationship
+        m_parentMap[optimizedName] = pitEntry;
+
+        // Send using the new PIT entry
+        this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
+      } 
+      else {
+        // The original interest already has exactly what we need, just forward it directly
+        std::cout << "  >> Forwarding original interest directly - no optimization needed" << std::endl;
+        this->sendInterest(interest, *outFace, pitEntry);
       }
-      
-      // Add to parent map to track relationship
-      m_parentMap[optimizedName] = pitEntry;
-      
-      // Send using the new PIT entry
-      this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
       
       return;
     }
@@ -560,6 +568,17 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       subInterestName.append("aggregate");
       for (int id : idList) {
         subInterestName.appendNumber(id);
+      }
+
+      // Add this block to preserve sequence numbers in split interests
+      // Preserve sequence number from original interest
+      for (size_t i = 0; i < interest.getName().size(); i++) {
+        if (interest.getName()[i].toUri().find("seq=") != std::string::npos) {
+          subInterestName.append(interest.getName()[i]);
+          std::cout << "  >> Preserved sequence component in split interest: " 
+                    << interest.getName()[i].toUri() << std::endl;
+          break;
+        }
       }
 
       // add the sub-interest into the parent map
@@ -614,7 +633,20 @@ void
 AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingress,
                                    const shared_ptr<pit::Entry>& pitEntry) 
 {
-  Strategy::afterReceiveData(data, ingress, pitEntry); // call base to forward data to pending faces
+  // Add this explicit role logging at the start
+  std::cout << getNodeRoleString() << " - STRATEGY processing Data: " << data.getName() 
+            << " from face " << ingress.face.getId() 
+            << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
+            << "s" << std::endl << std::flush;
+            
+  // Immediately after the above, add this to trace data forwarding:
+  std::cout << "  Current PIT entry has " << pitEntry->getInRecords().size() 
+            << " in-faces and " << pitEntry->getOutRecords().size() 
+            << " out-faces" << std::endl;
+            
+  // Continue with existing code
+  Strategy::afterReceiveData(data, ingress, pitEntry);
+
   Name dataName = data.getName();
   std::cout << "<< Data received: " << dataName.toUri() 
             << " from face " << ingress.face.getId() << std::endl << std::flush;

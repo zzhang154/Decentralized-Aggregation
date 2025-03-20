@@ -107,214 +107,229 @@ ValueProducer::StopApplication()
   App::StopApplication();
 }
 
+// Simplified OnInterest implementation to work with AggregateStrategy
 void
 ValueProducer::OnInterest(std::shared_ptr<const ::ndn::Interest> interest) 
 {
-  // Get the name before calling App::OnInterest so we can analyze it first
+  // Get the name first for analysis
   ::ndn::Name interestName = interest->getName();
   uint32_t appFaceId = m_face->getId();
   
   std::cout << "\nNode " << m_nodeId << " received Interest: " << interestName 
             << " via app face " << appFaceId << std::endl;
 
-  // First, check if this is a multi-node aggregation interest
-  // It should have format /aggregate/X/Y where X and Y are node IDs
+  // Check if this is an interest specifically for our own data
+  bool isSelfDataRequest = false;
   bool isMultiNodeInterest = false;
-  int nodeIdCount = 0;
   
   if (interestName.size() >= 2 && interestName.get(0).toUri() == "aggregate") {
-    // Count node ID components
+    // Count node ID components to determine if it's multi-node (EXCLUDING seq= components)
+    int nodeIdCount = 0;
     for (size_t i = 1; i < interestName.size(); i++) {
+      // SKIP sequence number components
+      if (interestName.get(i).toUri().find("seq=") != std::string::npos) {
+        continue;  // Skip sequence components
+      }
+      
       try {
-        interestName.get(i).toNumber(); // Just try to convert to verify it's a node ID
+        interestName.get(i).toNumber();
         nodeIdCount++;
       }
-      catch (const std::exception& e) {
-        // Not a node ID, might be a sequence or other component
+      catch (const std::exception&) {
+        // Not a numeric component
       }
     }
     
-    // Add this line to set isMultiNodeInterest based on nodeIdCount
     isMultiNodeInterest = (nodeIdCount > 1);
-
-    // If it has more than one node ID component, it's a multi-node interest
-    if (isMultiNodeInterest) {
-      std::cout << "Multi-node interest detected, forwarding to aggregator" << std::endl;
-      
-      // Debug FIB state before forwarding
-      DebugFibEntries("BEFORE FORWARDING MULTI-NODE INTEREST: " + interestName.toUri());
-      
-      // Obtain the L3Protocol from the node
-      auto l3proto = GetNode()->GetObject<ns3::ndn::L3Protocol>();
-      if (!l3proto) {
-        std::cout << "  ERROR: Could not get L3Protocol from node!" << std::endl;
-        return;
+    
+    // Check if this is asking specifically for our data - REGARDLESS of sequence component
+    // Look for our node ID in any position except after "aggregate"
+    for (size_t i = 1; i < interestName.size(); i++) {
+      // Skip sequence components
+      if (interestName.get(i).toUri().find("seq=") != std::string::npos) {
+        continue;
       }
       
-      // Get the forwarder from the L3Protocol (forwarder is now a shared_ptr)
-      auto forwarder = l3proto->getForwarder();
-      
-      // Access the FIB (use -> since forwarder is a shared_ptr)
-      const auto& fib = forwarder->getFib();
-      std::cout << "  Found " << std::distance(fib.begin(), fib.end()) << " total FIB entries" << std::endl;
-              
-      // Look for the generic "/aggregate" FIB entry.
-      ::ndn::Name genericName("/aggregate");
-      const nfd::fib::Entry* genericEntry = nullptr;
-      uint32_t chosenFaceId = 0;
-      uint32_t bestCost = std::numeric_limits<uint32_t>::max();
-      
-      for (const auto& entry : fib) {
-        if (entry.getPrefix() == genericName) {
-          for (const auto& nh : entry.getNextHops()) {
-            // Choose a face that is different from the local m_face.
-            if (nh.getFace().getId() != m_face->getId() && nh.getCost() < bestCost) {
-              bestCost = nh.getCost();
-              chosenFaceId = nh.getFace().getId();
-              genericEntry = &entry;
-            }
-          }
+      try {
+        uint64_t requestedId = interestName.get(i).toNumber();
+        if (requestedId == static_cast<uint64_t>(m_nodeId)) {
+          // If this is the only node ID in the interest, it's a self data request
+          isSelfDataRequest = !isMultiNodeInterest;
+          break;
         }
       }
-      
-      // Find the Face pointer corresponding to chosenFaceId.
-      Face* outFace = nullptr;
-      if (genericEntry) {
-        for (const auto& nh : genericEntry->getNextHops()) {
-          if (nh.getFace().getId() == chosenFaceId) {
-            outFace = const_cast<Face*>(&nh.getFace());
-            break;
-          }
-        }
+      catch (const std::exception&) {
+        // Not a numeric component
       }
-      
-      if (outFace != nullptr) {
-        std::cout << "Forwarding Interest on face " << outFace->getId() << std::endl;
-        m_transmittedInterests(interest, this, static_cast<nfd::face::Face*>(outFace));
-        outFace->sendInterest(*interest);
-        DebugPitState(interestName);
-      } else {
-        std::cout << "No suitable next-hop found; using default face " << m_face->getId() << std::endl;
-        m_transmittedInterests(interest, this, static_cast<nfd::face::Face*>(m_face.get()));
-        m_face->sendInterest(*interest);
-        DebugPitState(interestName);
-      }
-      
-      return;
-    }        
+    }
   }
-
-  // For single-node interests or other interests, process normally
-  App::OnInterest(interest);
   
-  // Only respond to interests for this specific node
-  if (interestName.size() >= 2 && 
-      interestName.get(0).toUri() == "aggregate") {
+  // CASE 1: This is a request specifically for our data - we should respond
+  if (isSelfDataRequest) {
+    std::cout << "* Node " << m_nodeId << " received direct request for its data" << std::endl;
     
-    // Try to extract and compare component 1 (the ID)
-    bool isMatch = false;
+    // Create Data packet
+    auto data = std::make_shared<::ndn::Data>(interestName);
     
-    try {
-      // This will work for binary-encoded components like %04
-      uint64_t requestedId = interestName.get(1).toNumber();
-      isMatch = (requestedId == static_cast<uint64_t>(m_nodeId)); // Adjust for 1-based IDs in interests
-      std::cout << "Checking if ID " << requestedId << " matches node ID " 
-                << m_nodeId  << " (index " << m_nodeId << "): " 
-                << (isMatch ? "yes" : "no") << std::endl;
-    }
-    catch (const std::exception& e) {
-      // Fallback to string comparison for non-numeric components
-      isMatch = (std::to_string(m_nodeId + 1) == interestName.get(1).toUri());
-    }
+    // Content: 8-byte integer equal to m_nodeId
+    uint64_t val = (uint64_t)(m_nodeId);
+    uint64_t netVal = htobe64(val);
     
-    // Only respond if this is an exact match for our node ID (not a multi-node interest)
-    if (isMatch && !isMultiNodeInterest) {
-      // Create Data packet with name equal to Interest's name
-      auto data = std::make_shared<::ndn::Data>(interestName);
-      // Content: 8-byte integer equal to m_nodeId
-      uint64_t val = (uint64_t)(m_nodeId); // Use 1-based ID in content too
-      uint64_t netVal = htobe64(val);
+    // Create a buffer for the content
+    std::shared_ptr<::ndn::Buffer> buffer = std::make_shared<::ndn::Buffer>(
+      reinterpret_cast<const uint8_t*>(&netVal), sizeof(netVal));
+    data->setContent(buffer);
+    data->setFreshnessPeriod(::ndn::time::seconds(1));
     
-      // Create a buffer for the content
-      std::shared_ptr<::ndn::Buffer> buffer = std::make_shared<::ndn::Buffer>(
-        reinterpret_cast<const uint8_t*>(&netVal), sizeof(netVal));
-      data->setContent(buffer);
-      data->setFreshnessPeriod(::ndn::time::seconds(1));  // 1 second freshness
-      
-      // Sign the data
-      ns3::ndn::StackHelper::getKeyChain().sign(*data);
-      
-      // Debug the PIT state before sending
-      DebugPitState(interestName);
-
-      // Send the Data packet
-      m_transmittedDatas(data, this, m_face);
-      m_face->sendData(*data);
-      std::cout << "Node " << m_nodeId << " produced Data for " << interestName.toUri() 
-            << " with value = " << val 
-            << " (replying via app face " << appFaceId << ")"
-            << " at " << std::fixed << std::setprecision(2) 
-            << ns3::Simulator::Now().GetSeconds() << "s" 
-            << std::endl << std::flush;
-    }
+    // Sign the data
+    ns3::ndn::StackHelper::getKeyChain().sign(*data);
+    
+    // Send the Data packet - let ForwardingStrategy handle its routing
+    m_transmittedDatas(data, this, m_face);
+    m_face->sendData(*data);
+    
+    std::cout << "Node " << m_nodeId << " produced Data with value = " << val 
+              << " at " << std::fixed << std::setprecision(2) 
+              << ns3::Simulator::Now().GetSeconds() << "s" 
+              << std::endl << std::flush;
+    
+    return; // We've handled this interest
   }
+
+  // NEW (BUG FIX): If the interest exactly matches our self-generated aggregated interest, forward it explicitly.
+  if (interestName == m_prefix) {
+    std::cout << "* Node " << m_nodeId << " detected self-generated aggregated interest, "
+              << "performing explicit forwarding to rack aggregator" << std::endl;
+    auto l3proto = GetNode()->GetObject<ns3::ndn::L3Protocol>();
+    if (l3proto) {
+      auto& fib = l3proto->getForwarder()->getFib();
+      for (const auto& entry : fib) {
+        if (entry.getPrefix().toUri() == "/aggregate") {
+          if (!entry.getNextHops().empty()) {
+            auto nh = entry.getNextHops().front();
+            nfd::face::Face* nextFace = &nh.getFace();
+            std::cout << "Forwarding self-generated aggregated interest via explicit route on Face " 
+                      << nextFace->getId() << std::endl;
+            m_transmittedInterests(interest, this, nextFace);
+            nextFace->sendInterest(*interest);
+            return;
+          }
+        }
+      }
+    }
+    std::cout << "Explicit route not found, falling back to default processing" << std::endl;
+  }
+  
+  // CASE 2: Multi-node interest or other interest - let NDN and strategy handle it
+  // Call the base App::OnInterest which will perform regular NDN processing
+  // This will let AggregateStrategy handle the forwarding
+  std::cout << "* Node " << m_nodeId << " letting strategy handle interest: " 
+            << (isMultiNodeInterest ? "multi-node" : "other") << std::endl;
+  
+  App::OnInterest(interest);
 }
 
-// BUG-FIX: This function is very important. Without it, the data will not be received successfully.
+// Simplified OnData implementation to work with AggregateStrategy
 void
 ValueProducer::OnData(std::shared_ptr<const ::ndn::Data> data)
 { 
-  // Check if this data was produced by this node by examining first two components
   ::ndn::Name dataName = data->getName();
-  bool isSelfProduced = false;
+  std::cout << "\nNode " << m_nodeId << " received Data: " << dataName << std::endl;
   
+  // Check if this is our own data
+  bool isSelfProduced = false;
   if (dataName.size() >= 2 && dataName.get(0).toUri() == "aggregate") {
     try {
       uint64_t dataNodeId = dataName.get(1).toNumber();
       if (dataNodeId == static_cast<uint64_t>(m_nodeId)) {
-        std::cout << "\nNode " << m_nodeId << " detected self-produced data: " 
-                  << dataName << " (injecting into network)" << std::endl;
-        
-        // First let NDN stack handle it
-        App::OnData(data);
-        
-        // CRITICAL: Explicitly forward to network faces
-        ForwardDataToNetwork(data);
-        
-        return;
-        
-        // // 3. Optionally, schedule additional debug logging.
-        // Simulator::Schedule(MilliSeconds(50), &ValueProducer::DebugFaceStats, this);
-        
-        return; // Now we have injected the Data – no further local processing.
+        isSelfProduced = true;
       }
     }
-    catch (const std::exception& e) {
-      // If conversion fails, assume it's not self-produced.
+    catch (const std::exception&) {
+      // Not a numeric component or not our data
     }
   }
-
-  // If we get here, it's NOT self-produced data
   
-  // For non-self-produced data, DO NOT call App::OnData
-  // This prevents forwarding loops - the NDN stack already forwarded it to us
+  if (isSelfProduced) {
+    // This is data we produced - need to EXPLICITLY forward to network
+    std::cout << "* Node " << m_nodeId << " received self-produced data - forwarding to network" << std::endl;
+    
+    // Get access to L3 protocol and faces
+    auto l3proto = GetNode()->GetObject<ns3::ndn::L3Protocol>();
+    if (!l3proto) {
+      std::cout << "ERROR: Could not get L3Protocol!" << std::endl;
+      return;
+    }
+    
+    // Find the face that the original interest came in on
+    bool dataForwarded = false;
+    const nfd::FaceTable& faceTable = l3proto->getFaceTable();
+    auto forwarder = l3proto->getForwarder();
+    
+    // Get PIT entries that match this data
+    const auto& pit = forwarder->getPit();
+    std::vector<std::shared_ptr<nfd::pit::Entry>> matchingEntries;
+    
+    // TO THIS SIMPLER VERSION:
+    std::cout << "  Looking for PIT entries that match " << dataName << std::endl;
+    for (const auto& pitEntry : pit) {
+      if (dataName.isPrefixOf(pitEntry.getName()) || pitEntry.getName().isPrefixOf(dataName)) {
+        std::cout << "  Found matching PIT entry: " << pitEntry.getName() << std::endl;
+        
+        // Get in-faces to forward data to
+        for (const auto& inRecord : pitEntry.getInRecords()) {
+          uint32_t faceId = inRecord.getFace().getId();
+          std::cout << "  Forwarding data to face " << faceId << std::endl;
+          
+          try {
+            // Forward data to this face
+            auto face = faceTable.get(faceId);
+            if (face) {
+              face->sendData(*data);
+              std::cout << "  Successfully sent data to face " << faceId << std::endl;
+              dataForwarded = true;
+            }
+          } catch (const std::exception& e) {
+            std::cout << "  Error sending to face: " << e.what() << std::endl;
+          }
+        }
+      }
+    }
+    
+    if (!dataForwarded) {
+      std::cout << "  WARNING: No matching PIT entries found for forwarding" << std::endl;
+    }
+    
+    // Still call App::OnData for normal processing
+    App::OnData(data);
+    return;
+  }
   
-  // Just process the content directly
-  std::cout << "Node " << m_nodeId << " received Data: " << data->getName() 
-            << " with content size " << data->getContent().value_size() << " bytes"
-            << " at " << std::fixed << std::setprecision(2) 
-            << ns3::Simulator::Now().GetSeconds() << "s"
-            << std::endl;
-            
-  // Extract and process the content
+  // This is data from other nodes - extract and process the content
+  std::cout << "* Node " << m_nodeId << " processing received data" << std::endl;
+  
+  // Standard processing of data content
   if (data->getContent().value_size() >= sizeof(uint64_t)) {
     uint64_t netBytes;
     std::memcpy(&netBytes, data->getContent().value(), sizeof(uint64_t));
     uint64_t value = be64toh(netBytes);
-    std::cout << "Node " << m_nodeId << " extracted value from Data: " 
-              << value << " at " << std::fixed << std::setprecision(2)
-              << ns3::Simulator::Now().GetSeconds() << "s" << std::endl;
+    
+    // For aggregated results with multiple node IDs
+    if (dataName.size() >= 3) {
+      std::cout << "✓ Node " << m_nodeId << " received AGGREGATED result: " 
+                << value << " at " << std::fixed << std::setprecision(2)
+                << ns3::Simulator::Now().GetSeconds() << "s" << std::endl;
+    } 
+    // For single node data
+    else {
+      std::cout << "Node " << m_nodeId << " received individual value: " 
+                << value << " at " << std::fixed << std::setprecision(2)
+                << ns3::Simulator::Now().GetSeconds() << "s" << std::endl;
+    }
   }
+  
+  // Let standard NDN processing occur (important for PIT/CS management)
+  App::OnData(data);
 }
 
 // Add this implementation after your StartApplication method

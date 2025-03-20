@@ -11,9 +11,6 @@
 // Include the custom strategy
 #include "ns3/ndnSIM/NFD/daemon/fw/AggregateStrategy.hpp"
 
-#include "ns3/ndnSIM/NFD/daemon/fw/forwarder.hpp"
-#include "ns3/ndnSIM/NFD/daemon/table/strategy-choice.hpp"
-
 using namespace ns3;
 
 // Global variables
@@ -226,23 +223,11 @@ void installNdnStack() {
   ndnHelper.setCsSize(0);
   ndnHelper.InstallAll();
   
-  // Create node containers for different types
-  NodeContainer aggregatorNodes;
-  for (int id : m_rackAggregatorIds) {
-    aggregatorNodes.Add(nodes.Get(id));
-  }
-  for (int id : m_coreAggregatorIds) {
-    aggregatorNodes.Add(nodes.Get(id));
-  }
-  
-  NodeContainer producerNodes;
-  for (int id : m_producerIds) {
-    producerNodes.Add(nodes.Get(id));
-  }
-  
+  // REPLACE THESE TWO BLOCKS:
+  /*
   // Set the custom AggregateStrategy ONLY for aggregator nodes
   ns3::ndn::StrategyChoiceHelper::Install(aggregatorNodes, "/aggregate", 
-                                         "/localhost/nfd/strategy/aggregate");
+                                        "/localhost/nfd/strategy/aggregate");
   std::cout << "Installed AggregateStrategy for /aggregate prefix on " 
             << aggregatorNodes.GetN() << " aggregator nodes" << std::endl;
 
@@ -251,6 +236,12 @@ void installNdnStack() {
                                         "/localhost/nfd/strategy/best-route");
   std::cout << "Installed best-route strategy for /aggregate prefix on " 
             << producerNodes.GetN() << " producer/consumer nodes" << std::endl;
+  */
+  
+  // WITH THIS ONE BLOCK TO INSTALL ON ALL NODES:
+  ns3::ndn::StrategyChoiceHelper::InstallAll("/aggregate", 
+                                           "/localhost/nfd/strategy/aggregate");
+  std::cout << "Installed AggregateStrategy for /aggregate prefix on ALL nodes" << std::endl;
 }
 
 /**
@@ -293,25 +284,6 @@ void configureRouting() {
     std::cout << "Registering route: " << prefixUri << " for node " << i + 1 << std::endl;
     
     grHelper.AddOrigins(prefixUri, nodes.Get(i));
-  }
-
-  // NEW: Register base /aggregate prefix for all aggregator nodes
-  std::cout << "\nRegistering /aggregate base prefix for aggregator nodes:" << std::endl;
-  
-  // Loop through rack aggregators
-  for (int i = 0; i < m_rackAggregatorIds.size(); ++i) {
-    int aggNodeId = m_rackAggregatorIds[i];
-    grHelper.AddOrigins("/aggregate", nodes.Get(aggNodeId));
-    std::cout << "  - Added /aggregate origin to Rack Aggregator " 
-              << (i+1) << " (node index " << aggNodeId << ")" << std::endl;
-  }
-  
-  // Loop through core aggregators
-  for (int i = 0; i < m_coreAggregatorIds.size(); ++i) {
-    int aggNodeId = m_coreAggregatorIds[i];
-    grHelper.AddOrigins("/aggregate", nodes.Get(aggNodeId));
-    std::cout << "  - Added /aggregate origin to Core Aggregator " 
-              << (i+1) << " (node index " << aggNodeId << ")" << std::endl;
   }
   
   grHelper.CalculateRoutes();
@@ -359,9 +331,8 @@ void installConsumers() {
     std::cout << "Node " << consumerId << " (index " << nodeId 
               << ") will request: " << interestName.toUri() << std::endl;
     
-    // ns3::ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
-    ns3::ndn::AppHelper consumerHelper("ValueProducer");
-    // consumerHelper.SetAttribute("Frequency", DoubleValue(1.0)); 
+    ns3::ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
+    consumerHelper.SetAttribute("Frequency", DoubleValue(1.0));
     consumerHelper.SetAttribute("Prefix", StringValue(interestName.toUri()));
     consumerHelper.SetAttribute("LifeTime", StringValue("2s"));
     
@@ -409,99 +380,6 @@ void configureSimulation() {
   std::cout << "Tracers installed. Simulation will run for 5.0 seconds" << std::endl;
 }
 
-
-
-// Add these functions outside of any other function (at file/global scope):
-
-// Trace callbacks MUST include the context parameter with this version of NS-3
-void
-TraceMacTx(std::string context, Ptr<const Packet> p)  // Added context parameter!
-{
-  std::cout << "MAC TX: " << context << " size=" << p->GetSize() << std::endl;
-}
-
-void
-TraceMacRx(std::string context, Ptr<const Packet> p)  // Added context parameter!
-{
-  std::cout << "MAC RX: " << context << " size=" << p->GetSize() << std::endl;
-}
-
-// Keep the connection method in setupDetailedTracing() the same
-void setupDetailedTracing() {
-  std::cout << "\n=== ADDING DETAILED NDN PACKET TRACING ===" << std::endl;
-
-  // Add this new code for low-level NDN tracing:
-  for (int i = 0; i < m_rackAggregatorIds.size(); ++i) {
-    Ptr<Node> node = nodes.Get(m_rackAggregatorIds[i]);
-    auto l3proto = node->GetObject<ns3::ndn::L3Protocol>();
-    if (l3proto) {
-      std::cout << "Adding low-level NDN tracing to rack aggregator " << (i+1) << std::endl;
-      
-      // Get a reference to the forwarder
-      nfd::Forwarder& forwarder = *(l3proto->getForwarder());
-      
-      // Use NFD's internal signal with correct signature: (const pit::Entry&, const face::Face&, const Data&)
-      int nodeId = i+1;
-      forwarder.beforeSatisfyInterest.connect(
-        [nodeId](const nfd::pit::Entry& pitEntry, const nfd::face::Face& face, const ::ndn::Data& data) {
-          std::string name = data.getName().toUri();
-          // Only show application packets (filter only "/aggregate" prefix)
-          if (name.compare(0, 10, "/aggregate") == 0) {
-            std::cout << "LOW LEVEL [R" << nodeId << "]: Data received " 
-                      << name << " for PIT entry " << pitEntry.getName() 
-                      << " on face " << face.getId() << std::endl;
-          }
-      });
-      
-      // Connect to PIT entry expiration signal
-      forwarder.beforeExpirePendingInterest.connect(
-        [nodeId](const nfd::pit::Entry& pitEntry) {
-          std::cout << "LOW LEVEL [R" << nodeId << "]: PIT entry expiring " 
-                    << pitEntry.getName() << std::endl;
-      });
-    }
-  }
-  
-  // Use the Connect method (not ConnectWithoutContext)
-  Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacTx", 
-                 MakeCallback(&TraceMacTx));
-  
-  Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacRx", 
-                 MakeCallback(&TraceMacRx));
-  
-  std::cout << "Added MAC-layer packet tracing" << std::endl;
-  
-  // Print installed strategies on each node
-  std::cout << "\n=== VERIFYING INSTALLED STRATEGIES ===" << std::endl;
-  
-  for (uint32_t i = 0; i < nodes.GetN(); i++) {
-    Ptr<Node> node = nodes.Get(i);
-    auto l3 = node->GetObject<ns3::ndn::L3Protocol>();
-    if (!l3) continue;
-    
-    std::cout << "Node " << i << " strategies:" << std::endl;
-    auto& strategyChoice = l3->getForwarder()->getStrategyChoice();
-    
-    // We can only get a list of prefixes, not the mapping directly
-    std::vector<std::string> prefixesToCheck = {"/aggregate"};
-    for (const auto& prefix : prefixesToCheck) {
-      try {
-        // The fix: Convert ndn::Name to string with toUri()
-        std::string strategyName = strategyChoice.findEffectiveStrategy(
-            nfd::Name(prefix)).getInstanceName().toUri();
-        std::cout << "  " << prefix << " → " << strategyName << std::endl;
-      }
-      catch (const std::exception& e) {
-        std::cout << "  " << prefix << " → (no strategy): " << e.what() << std::endl;
-      }
-    }
-  }
-  
-  std::cout << "Detailed NDN packet tracing enabled" << std::endl;
-}
-
-
-
 /**
  * Main function
  */
@@ -520,11 +398,8 @@ int main(int argc, char* argv[]) {
   
   // Configure and run the simulation
   configureSimulation();
-
-  // Add detailed NDN packet tracing (new function call)
-  setupDetailedTracing();
   
-  Simulator::Stop(Seconds(5.0));
+  Simulator::Stop(Seconds(1.5));
   Simulator::Run();
   Simulator::Destroy();
   

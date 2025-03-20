@@ -24,13 +24,14 @@ public:
   static const Name& getStrategyName();  // returns "/localhost/nfd/strategy/aggregate"
 
   // ** Strategy callback overrides **
+  // Change in AggregateStrategy.hpp:
   virtual void
-  afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
-                       const shared_ptr<pit::Entry>& pitEntry) override;
+  afterReceiveInterest(const ndn::Interest& interest, const nfd::FaceEndpoint& ingress,
+                      const std::shared_ptr<nfd::pit::Entry>& pitEntry) override;
 
   virtual void
-  afterReceiveData(const Data& data, const FaceEndpoint& ingress,
-                   const shared_ptr<pit::Entry>& pitEntry) override;
+  afterReceiveData(const ndn::Data& data, const nfd::FaceEndpoint& ingress,
+                  const std::shared_ptr<nfd::pit::Entry>& pitEntry) override;
 
   void 
   beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pitEntry);
@@ -87,6 +88,24 @@ private:
 
   // Helper to retrieve (and create if not exists) the AggregatePitInfo for a PIT entry
   AggregatePitInfo* getAggregatePitInfo(const std::shared_ptr<pit::Entry>& pitEntry);
+
+  /**
+   * @brief Special handling for consumer-producer nodes receiving interests
+   *
+   * Handles dual role: responds to interests for own data, forwards other interests to rack aggregator
+   */
+  void 
+  handleProducerInterest(const Interest& interest, const FaceEndpoint& ingress,
+                         const shared_ptr<pit::Entry>& pitEntry);
+                         
+  /**
+   * @brief Special handling for consumer-producer nodes receiving data
+   *
+   * Handles dual role: processes incoming aggregated results, ensures proper data forwarding
+   */
+  void
+  handleProducerData(const Data& data, const FaceEndpoint& ingress,
+                     const shared_ptr<pit::Entry>& pitEntry);
 
   // ** Data structures for coordinating sub-Interests and piggybacking **
 
