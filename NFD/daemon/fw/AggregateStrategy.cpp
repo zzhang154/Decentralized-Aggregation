@@ -542,7 +542,7 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
         std::cout << "  >> Forwarding original interest directly - no optimization needed" << std::endl;
         this->sendInterest(interest, *outFace, pitEntry);
       }
-      
+      this->setExpiryTimer(pitEntry, interest.getInterestLifetime());
       return;
     }
 
@@ -604,15 +604,22 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       shared_ptr<pit::Entry> subPitEntry = m_forwarder.getPit().find(*subInterest);
 
       if (subPitEntry) {
-        // Store parent-child relationship using explicit typing
+        // Store parent-child relationship as before
         AggregateSubInfo* subInfo = subPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
         if (subInfo) {
-          subInfo->parentEntry = pitEntry;
-          
-          std::cout << "  >> Forwarded sub-Interest " << subInterestName.toUri() 
-                    << " to face " << outFace->getId() 
-                    << " (new PIT entry created)" << std::endl << std::flush;
+            subInfo->parentEntry = pitEntry;
         }
+        // **Add dummy in-record so Data triggers strategy**
+        if (subPitEntry->getInRecords().empty()) {
+          Face& dummyFace = *outFace;  // use the face from which the aggregate Interest arrived
+            subPitEntry->insertOrUpdateInRecord(dummyFace, *subInterest);
+            std::cout << "  (Added dummy in-record for sub-interest " 
+                      << subInterestName.toUri() << " on face " << dummyFace.getId() 
+                      << ")" << std::endl;
+        }
+    
+        std::cout << "  >> Forwarded sub-Interest " << subInterestName.toUri()
+                  << " to face " << outFace->getId() << " (new PIT entry created)" << std::endl;
       }
     }
     // All necessary sub-interests have been forwarded.
@@ -947,6 +954,24 @@ AggregateStrategy::beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pit
     }
     std::cout << "}" << std::endl << std::flush;
   }
+}
+
+// Add this method to AggregateStrategy class - it's called before the forwarder processes any data
+void 
+AggregateStrategy::beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
+                                         const FaceEndpoint& ingress, const Data& data)
+{
+  std::cout << "\n!! RAW DATA RECEIVED BY FORWARDER: " << getNodeRoleString() 
+            << " received data " << data.getName() 
+            << " from face " << ingress.face.getId() << std::endl;
+  
+  // Check if there's a matching PIT entry
+  std::cout << "  PIT entry name: " << pitEntry->getName() << std::endl;
+  std::cout << "  # in-records: " << pitEntry->getInRecords().size() << std::endl; 
+  std::cout << "  # out-records: " << pitEntry->getOutRecords().size() << std::endl;
+  
+  // Continue normal processing - FIX THE ARGUMENT ORDER HERE
+  Strategy::beforeSatisfyInterest(data, ingress, pitEntry);
 }
 
 } // namespace fw

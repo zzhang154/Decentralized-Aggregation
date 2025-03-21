@@ -11,6 +11,9 @@
 // Include the custom strategy
 #include "ns3/ndnSIM/NFD/daemon/fw/AggregateStrategy.hpp"
 
+// First, add the include at the top of the file with other includes
+#include "ns3/ndnSIM/utils/ndn-aggregate-utils.hpp"
+
 using namespace ns3;
 
 // Global variables
@@ -210,6 +213,31 @@ void createTopology() {
             << (totalNodes-1) << std::endl;
 }
 
+// Callback function for MAC TX events
+void MacTxTrace(std::string context, Ptr<const Packet> packet)
+{
+  std::cout << "MAC TX: " << context << " size=" << packet->GetSize() << std::endl;
+}
+
+// Callback function for MAC RX events
+void MacRxTrace(std::string context, Ptr<const Packet> packet)
+{
+  std::cout << "MAC RX: " << context << " size=" << packet->GetSize() << std::endl;
+}
+
+// Then modify your enablePacketTracing function to use these functions:
+void enablePacketTracing() {
+  std::cout << "\n=== ENABLING PACKET TRACING ===" << std::endl;
+  
+  // Connect to all point-to-point devices' trace sources
+  Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacTx", 
+                  MakeCallback(&MacTxTrace));
+  Config::Connect("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacRx", 
+                  MakeCallback(&MacRxTrace));
+  
+  std::cout << "Packet tracing enabled for all point-to-point links" << std::endl;
+}
+
 /**
  * Install NDN stack and strategy selectively
  */
@@ -380,6 +408,106 @@ void configureSimulation() {
   std::cout << "Tracers installed. Simulation will run for 5.0 seconds" << std::endl;
 }
 
+// Now revise the setupDataMonitoring function to use the utilities
+void setupDataMonitoring() 
+{
+  NodeContainer allNodes = NodeContainer::GetGlobal();
+  
+  for (uint32_t i = 0; i < allNodes.GetN(); ++i) {
+    // Determine node role using the utility class
+    auto role = ns3::ndn::AggregateUtils::determineNodeRole(i);
+    
+    // Only monitor rack and core aggregator nodes
+    if (role != ns3::ndn::AggregateUtils::NodeRole::RACK_AGG && 
+        role != ns3::ndn::AggregateUtils::NodeRole::CORE_AGG) {
+      continue;
+    }
+    
+    // Get role string with logical ID using the utility function
+    std::string roleStr = ns3::ndn::AggregateUtils::getNodeRoleString(role, i);
+    
+    Ptr<Node> node = allNodes.Get(i);
+    std::cout << "Setting up monitoring for " << roleStr << " (node index " << i << ")" << std::endl;
+    
+    Ptr<ns3::ndn::L3Protocol> ndnProtocol = node->GetObject<ns3::ndn::L3Protocol>();
+    if (!ndnProtocol) {
+      std::cout << "  No NDN protocol on " << roleStr << std::endl;
+      continue;
+    }
+    
+    // Get a reference to the face table
+    const nfd::FaceTable& faceTable = ndnProtocol->getFaceTable();
+    
+    // Iterate through faces
+    for (const auto& face : faceTable) {
+      std::cout << "  Setting up monitoring on Face " << face.getId() << std::endl;
+      
+      // Monitoring variables for capture
+      auto faceId = face.getId();
+      auto weakNdnProtocol = ndnProtocol;
+      auto nodeId = i;
+      auto roleString = roleStr;  // Capture the role string
+      
+      // Connect handler to afterReceiveData signal
+      face.afterReceiveData.connect(
+        [nodeId, faceId, weakNdnProtocol, roleString](const ::ndn::Data& data, const nfd::EndpointId&) {
+          std::cout << "\n!!! " << roleString << " RECEIVED DATA ON FACE " << faceId 
+                    << ": " << data.getName() << std::endl;
+          
+          auto ndnProtocol = weakNdnProtocol;
+          if (!ndnProtocol) return;
+          
+          auto forwarder = ndnProtocol->getForwarder();
+          if (!forwarder) return;
+          
+          const auto& pit = forwarder->getPit();
+          
+          std::cout << "  === PIT STATE ON " << roleString << " ===" << std::endl;
+          std::cout << "  Total PIT entries: " << std::distance(pit.begin(), pit.end()) << std::endl;
+          
+          bool foundMatch = false;
+          for (const auto& pitEntry : pit) {
+            std::cout << "    PIT entry: " << pitEntry.getName() 
+                      << " (InFaces=" << pitEntry.getInRecords().size()
+                      << ", OutFaces=" << pitEntry.getOutRecords().size() 
+                      << ")" << std::endl;
+                      
+            // Check if data name matches PIT entry name
+            if (pitEntry.getName().isPrefixOf(data.getName()) || 
+                pitEntry.getName() == data.getName()) {
+              foundMatch = true;
+              std::cout << "    **** MATCH FOUND **** for data: " << data.getName() << std::endl;
+              
+              std::cout << "      In faces: ";
+              for (const auto& inRecord : pitEntry.getInRecords()) {
+                std::cout << inRecord.getFace().getId() << " ";
+              }
+              std::cout << std::endl;
+            }
+          }
+          
+          if (!foundMatch) {
+            std::cout << "    **** NO MATCHING PIT ENTRY **** for data: " << data.getName() << std::endl;
+            std::cout << "    This data will be dropped by the forwarder" << std::endl;
+          }
+        }
+      );
+      
+      std::cout << "  Data monitoring enabled on " << roleStr << ", Face " << face.getId() << std::endl;
+    }
+  }
+}
+
+// Then replace your monitorDataPackets function with this:
+void monitorDataPackets() {
+  std::cout << "\n=== ENABLING DATA PACKET MONITORING ===" << std::endl;
+  
+  // Use the standalone function instead of a lambda
+  Simulator::ScheduleNow(&setupDataMonitoring);
+  
+  std::cout << "Data packet monitoring enabled for rack aggregators" << std::endl;
+}
+
 /**
  * Main function
  */
@@ -389,7 +517,9 @@ int main(int argc, char* argv[]) {
 
   // Create topology and install NDN stack
   createTopology();
+  enablePacketTracing();  // Add this line here
   installNdnStack();
+  monitorDataPackets();  // Add this line
   
   // Install applications and configure routing
   installProducers();

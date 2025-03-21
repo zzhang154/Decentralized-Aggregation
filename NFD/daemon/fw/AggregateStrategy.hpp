@@ -36,6 +36,10 @@ public:
   void 
   beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pitEntry);
 
+  void 
+  beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
+                        const FaceEndpoint& ingress, const Data& data);
+
 private:
   // Store our own reference to the Forwarder
   Forwarder& m_forwarder;  // <-- The KEY fix

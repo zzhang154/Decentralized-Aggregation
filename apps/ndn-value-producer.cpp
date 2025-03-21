@@ -252,6 +252,18 @@ ValueProducer::OnData(std::shared_ptr<const ::ndn::Data> data)
   
   if (isSelfProduced) {
     // This is data we produced - need to EXPLICITLY forward to network
+    static std::set<std::string> processedDataNames; // Track data we've already sent
+    std::string dataNameStr = dataName.toUri();
+    
+    // Skip if we've already processed this data packet
+    if (processedDataNames.find(dataNameStr) != processedDataNames.end()) {
+      std::cout << "* Node " << m_nodeId << " already processed data " << dataNameStr << " - skipping to avoid loops" << std::endl;
+      return; // Skip further processing
+    }
+    
+    // Mark this data as processed
+    processedDataNames.insert(dataNameStr);
+    
     std::cout << "* Node " << m_nodeId << " received self-produced data - forwarding to network" << std::endl;
     
     // Get access to L3 protocol and faces
@@ -260,49 +272,54 @@ ValueProducer::OnData(std::shared_ptr<const ::ndn::Data> data)
       std::cout << "ERROR: Could not get L3Protocol!" << std::endl;
       return;
     }
-    
-    // Find the face that the original interest came in on
-    bool dataForwarded = false;
+  
+    // Find the face that connects to the network
     const nfd::FaceTable& faceTable = l3proto->getFaceTable();
     auto forwarder = l3proto->getForwarder();
+    bool dataForwarded = false;
+    nfd::Face* networkFace = nullptr;
     
-    // Get PIT entries that match this data
-    const auto& pit = forwarder->getPit();
-    std::vector<std::shared_ptr<nfd::pit::Entry>> matchingEntries;
-    
-    // TO THIS SIMPLER VERSION:
-    std::cout << "  Looking for PIT entries that match " << dataName << std::endl;
-    for (const auto& pitEntry : pit) {
-      if (dataName.isPrefixOf(pitEntry.getName()) || pitEntry.getName().isPrefixOf(dataName)) {
-        std::cout << "  Found matching PIT entry: " << pitEntry.getName() << std::endl;
-        
-        // Get in-faces to forward data to
-        for (const auto& inRecord : pitEntry.getInRecords()) {
-          uint32_t faceId = inRecord.getFace().getId();
-          std::cout << "  Forwarding data to face " << faceId << std::endl;
-          
-          try {
-            // Forward data to this face
-            auto face = faceTable.get(faceId);
-            if (face) {
-              face->sendData(*data);
-              std::cout << "  Successfully sent data to face " << faceId << std::endl;
-              dataForwarded = true;
-            }
-          } catch (const std::exception& e) {
-            std::cout << "  Error sending to face: " << e.what() << std::endl;
-          }
+    // Find a suitable network face
+    for (const auto& face : faceTable) {
+      if (face.getId() == m_face->getId()) continue; // Skip app face
+      
+      auto transport = face.getTransport();
+      if (transport) {
+        std::string uriStr = transport->getLocalUri().toString();
+        if (uriStr.find("netdev://") == 0) {
+          networkFace = const_cast<nfd::Face*>(&face);
+          std::cout << "  Found network face " << face.getId() << " for data injection" << std::endl;
+          break;
         }
       }
     }
     
-    if (!dataForwarded) {
-      std::cout << "  WARNING: No matching PIT entries found for forwarding" << std::endl;
+    if (networkFace) {
+      // Create a properly formatted & signed Data packet
+      std::cout << "  Creating properly formatted Data packet for: " << data->getName() << std::endl;
+      
+      // The key fix: Create a fresh Data packet with the same content but ensure proper signing
+      auto freshData = std::make_shared<::ndn::Data>(data->getName());
+      freshData->setContent(data->getContent());
+      freshData->setFreshnessPeriod(data->getFreshnessPeriod());
+      
+      // This is critical - use the KeyChain to properly sign the data packet
+      // This is the simplest and most reliable approach
+      ns3::ndn::StackHelper::getKeyChain().sign(*freshData);
+      
+      // Send it via the network face
+      std::cout << "  Sending properly formatted Data packet via face " << networkFace->getId() << std::endl;
+      networkFace->sendData(*freshData);
+      
+      // Record that we've processed this data
+      dataForwarded = true;
+    } else {
+      std::cout << "  WARNING: No suitable network face found for data injection" << std::endl;
     }
     
-    // Still call App::OnData for normal processing
-    App::OnData(data);
-    return;
+    // Important: Don't call App::OnData, as this could re-process the data
+    // App::OnData(data); - REMOVE THIS LINE
+    return; // Exit immediately after forwarding
   }
   
   // This is data from other nodes - extract and process the content
