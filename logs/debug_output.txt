@@ -1,7 +1,7 @@
 Waf: Entering directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Waf: Leaving directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Build commands will be stored in build/compile_commands.json
-'build' finished successfully (1.105s)
+'build' finished successfully (1.049s)
 GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1
 Copyright (C) 2022 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
@@ -61,19 +61,29 @@ Producer/Consumer nodes:       Indices 0-2 (Logical IDs 1-3)
 Rack Aggregator nodes:	       Indices 3-5
 Core Aggregator nodes:	       Indices 6-6
 
+=== ENABLING PACKET TRACING ===
+Packet tracing enabled for all point-to-point links
+
 === INSTALLING NDN STACK ===
 Strategy found nodeCount=3 from GlobalValue
-R1 initialized AggregateStrategy
+P1 initialized AggregateStrategy
 PIT expiration handler registered!
 AggregateStrategy initialized for Forwarder.
 Strategy will use virtual method overrides.
-Installed AggregateStrategy for /aggregate prefix on 4 aggregator nodes
-Installed best-route strategy for /aggregate prefix on 3 producer/consumer nodes
+Strategy found nodeCount=3 from GlobalValue
+P2 initialized AggregateStrategy
+PIT expiration handler registered!
+AggregateStrategy initialized for Forwarder.
+Strategy will use virtual method overrides.
+Installed AggregateStrategy for /aggregate prefix on ALL nodes
+
+=== ENABLING DATA PACKET MONITORING ===
+Data packet monitoring enabled for rack aggregators
 
 === INSTALLING PRODUCERS ===
 Installing producer on node 1 (index 0)
 Strategy found nodeCount=3 from GlobalValue
-R2 initialized AggregateStrategy
+P3 initialized AggregateStrategy
 PIT expiration handler registered!
 AggregateStrategy initialized for Forwarder.
 Strategy will use virtual method overrides.
@@ -82,9 +92,68 @@ R3 initialized AggregateStrategy
 PIT expiration handler registered!
 AggregateStrategy initialized for Forwarder.
 Strategy will use virtual method overrides.
+Setting up monitoring for R1 (node index 3)
+  Setting up monitoring on Face 1
+  Data monitoring enabled on R1, Face 1
+  Setting up monitoring on Face 2
+  Data monitoring enabled on R1, Face 2
+  Setting up monitoring on Face 254
+  Data monitoring enabled on R1, Face 254
+  Setting up monitoring on Face 256
+  Data monitoring enabled on R1, Face 256
+  Setting up monitoring on Face 257
+  Data monitoring enabled on R1, Face 257
+  Setting up monitoring on Face 258
+  Data monitoring enabled on R1, Face 258
+Setting up monitoring for R2 (node index 4)
+  Setting up monitoring on Face 1
+  Data monitoring enabled on R2, Face 1
+  Setting up monitoring on Face 2
+  Data monitoring enabled on R2, Face 2
+  Setting up monitoring on Face 254
+  Data monitoring enabled on R2, Face 254
+  Setting up monitoring on Face 256
+  Data monitoring enabled on R2, Face 256
+  Setting up monitoring on Face 257
+  Data monitoring enabled on R2, Face 257
+  Setting up monitoring on Face 258
+  Data monitoring enabled on R2, Face 258
+Setting up monitoring for R3 (node index 5)
+  Setting up monitoring on Face 1
+  Data monitoring enabled on R3, Face 1
+  Setting up monitoring on Face 2
+  Data monitoring enabled on R3, Face 2
+  Setting up monitoring on Face 254
+  Data monitoring enabled on R3, Face 254
+  Setting up monitoring on Face 256
+  Data monitoring enabled on R3, Face 256
+  Setting up monitoring on Face 257
+  Data monitoring enabled on R3, Face 257
+  Setting up monitoring on Face 258
+  Data monitoring enabled on R3, Face 258
+Setting up monitoring for C1 (node index 6)
+  Setting up monitoring on Face 1
+  Data monitoring enabled on C1, Face 1
+  Setting up monitoring on Face 2
+  Data monitoring enabled on C1, Face 2
+  Setting up monitoring on Face 254
+  Data monitoring enabled on C1, Face 254
+  Setting up monitoring on Face 256
+  Data monitoring enabled on C1, Face 256
+  Setting up monitoring on Face 257
+  Data monitoring enabled on C1, Face 257
+  Setting up monitoring on Face 258
+  Data monitoring enabled on C1, Face 258
+  Setting up monitoring on Face 259
+  Data monitoring enabled on C1, Face 259
 Installing producer on node 2 (index 1)
 Strategy found nodeCount=3 from GlobalValue
-C1 initialized AggregateStrategy
+R1 initialized AggregateStrategy
+PIT expiration handler registered!
+AggregateStrategy initialized for Forwarder.
+Strategy will use virtual method overrides.
+Strategy found nodeCount=3 from GlobalValue
+R2 initialized AggregateStrategy
 PIT expiration handler registered!
 AggregateStrategy initialized for Forwarder.
 Strategy will use virtual method overrides.
@@ -94,12 +163,6 @@ Installing producer on node 3 (index 2)
 Registering route: /aggregate/%01 for node 1
 Registering route: /aggregate/%02 for node 2
 Registering route: /aggregate/%03 for node 3
-
-Registering /aggregate base prefix for aggregator nodes:
-  - Added /aggregate origin to Rack Aggregator 1 (node index 3)
-  - Added /aggregate origin to Rack Aggregator 2 (node index 4)
-  - Added /aggregate origin to Rack Aggregator 3 (node index 5)
-  - Added /aggregate origin to Core Aggregator 1 (node index 6)
 Route calculation complete
 Node 1 FIB entries:
   - Prefix: /localhost/nfd/rib -> Face256
@@ -113,155 +176,338 @@ Node 3 FIB entries:
 
 === INSTALLING CONSUMERS ===
 Node 1 (index 0) will request: /aggregate/%02/%03
+
+!!! R3 RECEIVED DATA ON FACE 1: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R3 ===
+  Total PIT entries: 2
+    PIT entry: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=1, OutFaces=1)
+
+!!! R1 RECEIVED DATA ON FACE 1: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R1 ===
+  Total PIT entries: 2
+    PIT entry: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=1, OutFaces=1)
+
+!!! R1 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=1
+  === PIT STATE ON R1 ===
+  Total PIT entries: 2
+    PIT entry: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=1
+      In faces:
 Installed consumer app on node 1
   Consumer will start at 1.0s
 Node 2 (index 1) will request: /aggregate/%01/%03
 Installed consumer app on node 2
   Consumer will start at 1.0s
 Node 3 (index 2) will request: /aggregate/%01/%02
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=1
+  === PIT STATE ON C1 ===
+  Total PIT entries: 2
+    PIT entry: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=1
+      In faces:
+
+!!! R2 RECEIVED DATA ON FACE 1: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R2 ===
+  Total PIT entries: 2
+    PIT entry: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=1, OutFaces=1)
+Strategy found nodeCount=3 from GlobalValue
+C1 initialized AggregateStrategy
+PIT expiration handler registered!
+AggregateStrategy initialized for Forwarder.
+Strategy will use virtual method overrides.
 Installed consumer app on node 3
   Consumer will start at 1.0s
 === CONFIGURING SIMULATION ===
-[Detaching after vfork from child process 882254]
+[Detaching after vfork from child process 1015350]
 L3RateTracer installed, output to results/rate-trace.txt
 Tracers installed. Simulation will run for 5.0 seconds
-
-=== ADDING DETAILED NDN PACKET TRACING ===
-Adding low-level NDN tracing to rack aggregator 1
-Adding low-level NDN tracing to rack aggregator 2
-Adding low-level NDN tracing to rack aggregator 3
-Added MAC-layer packet tracing
-
-=== VERIFYING INSTALLED STRATEGIES ===
-Node 0 strategies:
-  /aggregate → /localhost/nfd/strategy/best-route/v=5
-Node 1 strategies:
-  /aggregate → /localhost/nfd/strategy/best-route/v=5
-Node 2 strategies:
-  /aggregate → /localhost/nfd/strategy/best-route/v=5
-Node 3 strategies:
-  /aggregate → /localhost/nfd/strategy/aggregate
-Node 4 strategies:
-  /aggregate → /localhost/nfd/strategy/aggregate
-Node 5 strategies:
-  /aggregate → /localhost/nfd/strategy/aggregate
-Node 6 strategies:
-  /aggregate → /localhost/nfd/strategy/aggregate
-Detailed NDN packet tracing enabled
 Time: 0s
-Node 1 will request: /aggregate/%02/%03
-Node 2 will request: /aggregate/%01/%03
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON C1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/strategy-choice/set/h6%07%0B%08%09aggregatek%27%07%25%08%09localhost%08%03nfd%08%08strategy%08%09aggregate/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%03j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R2 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=1
+  === PIT STATE ON R2 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=1
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R3 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=1
+  === PIT STATE ON R3 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=1 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=1
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R1 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R1 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R1 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+
+!!! R2 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R2 ===
+  Total PIT entries: 3
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R2 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R2 ===
+  Total PIT entries: 3
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+
+!!! R2 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R2 ===
+  Total PIT entries: 3
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+
+!!! R3 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R3 ===
+  Total PIT entries: 3
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+
+!!! R3 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R3 ===
+  Total PIT entries: 3
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+
+!!! R3 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON R3 ===
+  Total PIT entries: 3
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%01j%01%01/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%02j%01%03/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON C1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%03j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=1, OutFaces=1)
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON C1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%03j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=1, OutFaces=1)
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%03j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+  === PIT STATE ON C1 ===
+  Total PIT entries: 4
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%02i%02%01%02j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%03j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%03i%02%01%03j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2
+      In faces:
+    PIT entry: /localhost/nfd/fib/add-nexthop/h%17%07%0E%08%09aggregate%08%01%01i%02%01%01j%01%02/%16%2C%1B%01%01%1C%27%07%25%08%05dummy%08%03KEY%08%08-%9C%28r%B8%AA%3B%60%08%02NA%08%09%FD%00%00%01%5E%DF%3C%C6%7C/%17%FD%01%04%17%FD%01%00%93%15%09Iy%9E%B7%9C%D3%C1%BFa%89%D5%D9%CA%F2%B0%14%AEr%7C%1F%8F%F5%B1p%D6%9B%8F%F8%D7-%BC%92o%7Dw%96F%EA%D4%7D%90%BCz%EB%E2%03%93%B1%D2b%EC%9D%FF%9C%9C%2A%14%7D%23%CA%29%3D%15%1A%40B%2CY3%8A%F7%C0k%C4%9C%F3%C4%99%A4%1A%60%F5%28%7DL%EFC%7D%BD%7D%00Q%EEA%F5%25%80%CE%E6dOuT%F3%B2%99%9A%0F%93%9A%28%1D%FE%12%8A%E0%C1%02%EB%A45R%88%ACD%1AD%82%97O_%A8%D8%9Fg8%A8d%B6b%99%BD%96%3C%F5%86%09%5C%97k%8F%AE%E0%60%E7%23%98j%EE%C1%B0%14%BEF%2C%FB%A7%27s%E4%F3%263%BA%99%D4%018%A8%F2%9E%87%E0q%0B%25D%075%88%ABg%27V%0E%B5%B5%E8%27%B4I%DC%B8H1%FF%99H%AB%11%B4%A0%DF%8Am%FFCi2%A7%BCc%9D%0F%E0%9546%25K%3E6%BD%81%91%0B%91%9F%3A%04%A2D%28%19%A18%21O%25Y%8AH%C2 (InFaces=0, OutFaces=0)
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=1, OutFaces=1)
+
+!!! R1 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=2
+  === PIT STATE ON R1 ===
+  Total PIT entries: 1
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=2
+      In faces:
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=2
+  === PIT STATE ON C1 ===
+  Total PIT entries: 1
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=2
+      In faces:
+
+!!! R3 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=2
+  === PIT STATE ON R3 ===
+  Total PIT entries: 1
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=2
+      In faces:
+
+!!! R2 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=2
+  === PIT STATE ON R2 ===
+  Total PIT entries: 1
+    PIT entry: /localhost/nfd/faces/events/seq=2 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=2
+      In faces:
+
+!!! C1 RECEIVED DATA ON FACE 1: /localhost/nfd/faces/events/seq=3
+  === PIT STATE ON C1 ===
+  Total PIT entries: 1
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /localhost/nfd/faces/events/seq=3
+      In faces:
 Time: 1s
-Node 3 will request: /aggregate/%01/%02
-Time: 2s
-Node 1 sending Interest: /aggregate/%02/%03 at 2.00s
-Node 2 sending Interest: /aggregate/%01/%03 at 2.00s
-Node 3 sending Interest: /aggregate/%01/%02 at 2.00s
 
-Node 1 received Interest: /aggregate/%02/%03 via app face 259
-Multi-node interest detected, forwarding to aggregator
---- FIB DEBUG for Node 1 at 2.00s ---
-BEFORE FORWARDING MULTI-NODE INTEREST: /aggregate/%02/%03
-  Found 6 total FIB entries
-  FIB entry: /aggregate
-    NextHop face: 257 (cost: 1)
-  FIB entry: /localhost/nfd/rib
-    NextHop face: 256 (cost: 0)
-  FIB entry: /localhost/nfd
-    NextHop face: 1 (cost: 0)
-  FIB entry: /aggregate/%01
-    NextHop face: 258 (cost: 0)
-    NextHop face: 259 (cost: 0)
-  FIB entry: /aggregate/%03
-    NextHop face: 257 (cost: 4)
-  FIB entry: /aggregate/%02
-    NextHop face: 257 (cost: 4)
-  Found 5 unique faces in FIB entries:
-    Face ID: 1 (system)
-    Face ID: 256 (app/net)
-    Face ID: 257 (app/net)
-    Face ID: 258 (app/net)
-    Face ID: 259 (app/net)
---- END FIB DEBUG ---
-  Found 6 total FIB entries
-Forwarding Interest on face 257
-MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
-PRODUCER 1: Before sending data, checking local PIT:
-  Found 1 total PIT entries
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-
-Node 2 received Interest: /aggregate/%01/%03 via app face 259
-Multi-node interest detected, forwarding to aggregator
---- FIB DEBUG for Node 2 at 2.00s ---
-BEFORE FORWARDING MULTI-NODE INTEREST: /aggregate/%01/%03
-  Found 6 total FIB entries
-  FIB entry: /aggregate
-    NextHop face: 257 (cost: 2)
-  FIB entry: /localhost/nfd/rib
-    NextHop face: 256 (cost: 0)
-  FIB entry: /localhost/nfd
-    NextHop face: 1 (cost: 0)
-  FIB entry: /aggregate/%01
-    NextHop face: 257 (cost: 4)
-  FIB entry: /aggregate/%03
-    NextHop face: 257 (cost: 4)
-  FIB entry: /aggregate/%02
-    NextHop face: 258 (cost: 0)
-    NextHop face: 259 (cost: 0)
-  Found 5 unique faces in FIB entries:
-    Face ID: 1 (system)
-    Face ID: 256 (app/net)
-    Face ID: 257 (app/net)
-    Face ID: 258 (app/net)
-    Face ID: 259 (app/net)
---- END FIB DEBUG ---
-  Found 6 total FIB entries
-Forwarding Interest on face 257
-MAC TX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
-PRODUCER 2: Before sending data, checking local PIT:
-  Found 1 total PIT entries
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-
-Node 3 received Interest: /aggregate/%01/%02 via app face 259
-Multi-node interest detected, forwarding to aggregator
---- FIB DEBUG for Node 3 at 2.00s ---
-BEFORE FORWARDING MULTI-NODE INTEREST: /aggregate/%01/%02
-  Found 6 total FIB entries
-  FIB entry: /aggregate
-    NextHop face: 257 (cost: 2)
-  FIB entry: /localhost/nfd/rib
-    NextHop face: 256 (cost: 0)
-  FIB entry: /localhost/nfd
-    NextHop face: 1 (cost: 0)
-  FIB entry: /aggregate/%01
-    NextHop face: 257 (cost: 4)
-  FIB entry: /aggregate/%03
-    NextHop face: 258 (cost: 0)
-    NextHop face: 259 (cost: 0)
-  FIB entry: /aggregate/%02
-    NextHop face: 257 (cost: 4)
-  Found 5 unique faces in FIB entries:
-    Face ID: 1 (system)
-    Face ID: 256 (app/net)
-    Face ID: 257 (app/net)
-    Face ID: 258 (app/net)
-    Face ID: 259 (app/net)
---- END FIB DEBUG ---
-  Found 6 total FIB entries
-Forwarding Interest on face 257
-MAC TX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
-PRODUCER 3: Before sending data, checking local PIT:
-  Found 1 total PIT entries
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-
-R1 - STRATEGY received Interest: /aggregate/%02/%03 via 257 at 2.00s
+P1 - STRATEGY received Interest: /aggregate/%02/%03/seq=0 via 259 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 1)
-    * Face: 258 Cost: 1
+  - Prefix: /localhost/nfd/rib (Nexthops: 1)
+    * Face: 256 Cost: 0
+  - Prefix: /localhost/nfd (Nexthops: 1)
+    * Face: 1 Cost: 0
+  - Prefix: /aggregate/%01 (Nexthops: 1)
+    * Face: 258 Cost: 0
+  - Prefix: /aggregate/%03 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%02 (Nexthops: 1)
+    * Face: 257 Cost: 4
+>> Received Interest /aggregate/%02/%03/seq=0 from face 259 requesting IDs = { 2 3 }
+If some IDs are still pending
+DEBUG: FIB table has 5 entries
+DEBUG: Processing 2 pending IDs: [ 2 3 ]
+DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
+DEBUG: Selected Face 257 for ID 2
+DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
+DEBUG: Selected Face 257 for ID 3
+OPTIMIZATION: All 2 IDs route to the same face (ID: 257).
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=43
+  [PRESERVED] Restored InRecord for face 259 in PIT entry for /aggregate/%02/%03/seq=0
+
+P2 - STRATEGY received Interest: /aggregate/%01/%03/seq=0 via 259 at 1.00s
+Current PIT entries before forwarding Interest:
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+DEBUG: FIB table has 5 entries
+DEBUG: Current FIB entries:
+  - Prefix: /localhost/nfd/rib (Nexthops: 1)
+    * Face: 256 Cost: 0
+  - Prefix: /localhost/nfd (Nexthops: 1)
+    * Face: 1 Cost: 0
+  - Prefix: /aggregate/%01 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%03 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%02 (Nexthops: 1)
+    * Face: 258 Cost: 0
+>> Received Interest /aggregate/%01/%03/seq=0 from face 259 requesting IDs = { 1 3 }
+If some IDs are still pending
+DEBUG: FIB table has 5 entries
+DEBUG: Processing 2 pending IDs: [ 1 3 ]
+DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
+DEBUG: Selected Face 257 for ID 1
+DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
+DEBUG: Selected Face 257 for ID 3
+OPTIMIZATION: All 2 IDs route to the same face (ID: 257).
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=43
+  [PRESERVED] Restored InRecord for face 259 in PIT entry for /aggregate/%01/%03/seq=0
+
+P3 - STRATEGY received Interest: /aggregate/%01/%02/seq=0 via 259 at 1.00s
+Current PIT entries before forwarding Interest:
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+DEBUG: FIB table has 5 entries
+DEBUG: Current FIB entries:
+  - Prefix: /localhost/nfd/rib (Nexthops: 1)
+    * Face: 256 Cost: 0
+  - Prefix: /localhost/nfd (Nexthops: 1)
+    * Face: 1 Cost: 0
+  - Prefix: /aggregate/%01 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%03 (Nexthops: 1)
+    * Face: 258 Cost: 0
+  - Prefix: /aggregate/%02 (Nexthops: 1)
+    * Face: 257 Cost: 4
+>> Received Interest /aggregate/%01/%02/seq=0 from face 259 requesting IDs = { 1 2 }
+If some IDs are still pending
+DEBUG: FIB table has 5 entries
+DEBUG: Processing 2 pending IDs: [ 1 2 ]
+DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
+DEBUG: Selected Face 257 for ID 1
+DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
+DEBUG: Selected Face 257 for ID 2
+OPTIMIZATION: All 2 IDs route to the same face (ID: 257).
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=43
+  [PRESERVED] Restored InRecord for face 259 in PIT entry for /aggregate/%01/%02/seq=0
+
+R1 - STRATEGY received Interest: /aggregate/%02/%03/seq=0 via 257 at 1.00s
+Current PIT entries before forwarding Interest:
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+DEBUG: FIB table has 5 entries
+DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -272,27 +518,26 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 3
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 3
->> Received Interest /aggregate/%02/%03 from face 257 requesting IDs = { 2 3 }
+>> Received Interest /aggregate/%02/%03/seq=0 from face 257 requesting IDs = { 2 3 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 2 pending IDs: [ 2 3 ]
 DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
 DEBUG: Selected Face 258 for ID 2
 DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
 DEBUG: Selected Face 258 for ID 3
 OPTIMIZATION: All 2 IDs route to the same face (ID: 258).
-  >> Creating optimized interest with only pending IDs: /aggregate/%02/%03
-MAC TX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=40
-MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=43
+  [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%02/%03/seq=0
+MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
-R2 - STRATEGY received Interest: /aggregate/%01/%03 via 257 at 2.00s
+R2 - STRATEGY received Interest: /aggregate/%01/%03/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 1)
-    * Face: 258 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -303,27 +548,26 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 3
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 1
->> Received Interest /aggregate/%01/%03 from face 257 requesting IDs = { 1 3 }
+>> Received Interest /aggregate/%01/%03/seq=0 from face 257 requesting IDs = { 1 3 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 2 pending IDs: [ 1 3 ]
 DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
 DEBUG: Selected Face 258 for ID 1
 DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
 DEBUG: Selected Face 258 for ID 3
 OPTIMIZATION: All 2 IDs route to the same face (ID: 258).
-  >> Creating optimized interest with only pending IDs: /aggregate/%01/%03
-MAC TX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=40
-MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=43
+  [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%01/%03/seq=0
+MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
-R3 - STRATEGY received Interest: /aggregate/%01/%02 via 257 at 2.00s
+R3 - STRATEGY received Interest: /aggregate/%01/%02/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%02 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 1)
-    * Face: 258 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -334,29 +578,26 @@ DEBUG: Current FIB entries:
     * Face: 257 Cost: 1
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 3
->> Received Interest /aggregate/%01/%02 from face 257 requesting IDs = { 1 2 }
+>> Received Interest /aggregate/%01/%02/seq=0 from face 257 requesting IDs = { 1 2 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 2 pending IDs: [ 1 2 ]
 DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
 DEBUG: Selected Face 258 for ID 1
 DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
 DEBUG: Selected Face 258 for ID 2
 OPTIMIZATION: All 2 IDs route to the same face (ID: 258).
-  >> Creating optimized interest with only pending IDs: /aggregate/%01/%02
-MAC TX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=40
-MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=43
+  [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%01/%02/seq=0
+MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
-C1 - STRATEGY received Interest: /aggregate/%02/%03 via 257 at 2.00s
+C1 - STRATEGY received Interest: /aggregate/%02/%03/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 3)
-    * Face: 259 Cost: 1
-    * Face: 258 Cost: 1
-    * Face: 257 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -367,9 +608,9 @@ DEBUG: Current FIB entries:
     * Face: 259 Cost: 2
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 2
->> Received Interest /aggregate/%02/%03 from face 257 requesting IDs = { 2 3 }
+>> Received Interest /aggregate/%02/%03/seq=0 from face 257 requesting IDs = { 2 3 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 2 pending IDs: [ 2 3 ]
 DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
 DEBUG: Selected Face 258 for ID 2
@@ -378,27 +619,27 @@ DEBUG: Selected Face 259 for ID 3
 DEBUG: Face-to-IDs mapping results:
   - Face ID 258 will handle IDs: [ 2 ]
   - Face ID 259 will handle IDs: [ 3 ]
->> Forwarding sub-Interest /aggregate/%02 via face 258 (FIB match: /aggregate/%02)
-MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=37
-  >> Forwarded sub-Interest /aggregate/%02 to face 258 (new PIT entry created)
->> Forwarding sub-Interest /aggregate/%03 via face 259 (FIB match: /aggregate/%03)
-MAC TX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacTx size=37
-  >> Forwarded sub-Interest /aggregate/%03 to face 259 (new PIT entry created)
-MAC RX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
+  >> Preserved sequence component in split interest: seq=0
+>> Forwarding sub-Interest /aggregate/%02/seq=0 via face 258 (FIB match: /aggregate/%02)
+MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=40
+  [PRESERVED] Added InRecord from original face 257 to sub-interest PIT entry for /aggregate/%02/seq=0
+  >> Forwarded sub-Interest /aggregate/%02/seq=0 to face 258 (new PIT entry created)
+  >> Preserved sequence component in split interest: seq=0
+>> Forwarding sub-Interest /aggregate/%03/seq=0 via face 259 (FIB match: /aggregate/%03)
+MAC TX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacTx size=40
+  [PRESERVED] Added InRecord from original face 257 to sub-interest PIT entry for /aggregate/%03/seq=0
+  >> Forwarded sub-Interest /aggregate/%03/seq=0 to face 259 (new PIT entry created)
+MAC RX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
-C1 - STRATEGY received Interest: /aggregate/%01/%03 via 258 at 2.00s
+C1 - STRATEGY received Interest: /aggregate/%01/%03/seq=0 via 258 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%01/%03 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%03 (InFaces=0, OutFaces=1)
-  PIT entry: /aggregate/%02 (InFaces=0, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
   PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 3)
-    * Face: 259 Cost: 1
-    * Face: 258 Cost: 1
-    * Face: 257 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -409,33 +650,30 @@ DEBUG: Current FIB entries:
     * Face: 259 Cost: 2
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 2
->> Received Interest /aggregate/%01/%03 from face 258 requesting IDs = { 1 3 }
-  [Subset] Interest /aggregate/%03 is a subset of new Interest /aggregate/%01/%03
+>> Received Interest /aggregate/%01/%03/seq=0 from face 258 requesting IDs = { 1 3 }
+  [Subset] Interest /aggregate/%03/seq=0 is a subset of new Interest /aggregate/%01/%03/seq=0
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 1 pending IDs: [ 1 ]
 DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
 DEBUG: Selected Face 257 for ID 1
 OPTIMIZATION: All 1 IDs route to the same face (ID: 257).
-  >> Creating optimized interest with only pending IDs: /aggregate/%01
-MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=37
-MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
+  >> Creating optimized interest with only pending IDs: /aggregate/%01/seq=0
+MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
+  [PRESERVED] Copied InRecord from original PIT entry (face 258) to optimized PIT entry
+MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=43
 
-C1 - STRATEGY received Interest: /aggregate/%01/%02 via 259 at 2.00s
+C1 - STRATEGY received Interest: /aggregate/%01/%02/seq=0 via 259 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%01/%03 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%01/%02 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%01 (InFaces=0, OutFaces=1)
-  PIT entry: /aggregate/%03 (InFaces=0, OutFaces=1)
-  PIT entry: /aggregate/%02 (InFaces=0, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
   PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 3)
-    * Face: 259 Cost: 1
-    * Face: 258 Cost: 1
-    * Face: 257 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -446,21 +684,19 @@ DEBUG: Current FIB entries:
     * Face: 259 Cost: 2
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 2
->> Received Interest /aggregate/%01/%02 from face 259 requesting IDs = { 1 2 }
-  [Subset] Interest /aggregate/%01 is a subset of new Interest /aggregate/%01/%02
-  [Subset] Interest /aggregate/%02 is a subset of new Interest /aggregate/%01/%02
-  (No new sub-interests forwarded for /aggregate/%01/%02)
-MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=40
+>> Received Interest /aggregate/%01/%02/seq=0 from face 259 requesting IDs = { 1 2 }
+  [Subset] Interest /aggregate/%02/seq=0 is a subset of new Interest /aggregate/%01/%02/seq=0
+  [Subset] Interest /aggregate/%01/seq=0 is a subset of new Interest /aggregate/%01/%02/seq=0
+  (No new sub-interests forwarded for /aggregate/%01/%02/seq=0)
+MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=43
 
-R2 - STRATEGY received Interest: /aggregate/%02 via 258 at 2.01s
+R2 - STRATEGY received Interest: /aggregate/%02/seq=0 via 258 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1)
   PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%02 (InFaces=1, OutFaces=0)
-DEBUG: FIB table has 6 entries
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=0)
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 1)
-    * Face: 258 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -471,27 +707,25 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 3
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 1
-  [Strategy] Extracted ID 2 from cross-strategy PIT entry
->> Received Interest /aggregate/%02 from face 258 requesting IDs = { 2 }
+>> Received Interest /aggregate/%02/seq=0 from face 258 requesting IDs = { 2 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 1 pending IDs: [ 2 ]
 DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
 DEBUG: Selected Face 257 for ID 2
 OPTIMIZATION: All 1 IDs route to the same face (ID: 257).
-  >> Creating optimized interest with only pending IDs: /aggregate/%02
-MAC TX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=37
-MAC RX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=37
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
+  [PRESERVED] Restored InRecord for face 258 in PIT entry for /aggregate/%02/seq=0
+MAC RX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
 
-R3 - STRATEGY received Interest: /aggregate/%03 via 258 at 2.01s
+R3 - STRATEGY received Interest: /aggregate/%03/seq=0 via 258 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%02 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1)
   PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%03 (InFaces=1, OutFaces=0)
-DEBUG: FIB table has 6 entries
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=0)
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 1)
-    * Face: 258 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -502,27 +736,25 @@ DEBUG: Current FIB entries:
     * Face: 257 Cost: 1
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 3
-  [Strategy] Extracted ID 3 from cross-strategy PIT entry
->> Received Interest /aggregate/%03 from face 258 requesting IDs = { 3 }
+>> Received Interest /aggregate/%03/seq=0 from face 258 requesting IDs = { 3 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 1 pending IDs: [ 3 ]
 DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
 DEBUG: Selected Face 257 for ID 3
 OPTIMIZATION: All 1 IDs route to the same face (ID: 257).
-  >> Creating optimized interest with only pending IDs: /aggregate/%03
-MAC TX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=37
-MAC RX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=37
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
+  [PRESERVED] Restored InRecord for face 258 in PIT entry for /aggregate/%03/seq=0
+MAC RX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
 
-R1 - STRATEGY received Interest: /aggregate/%01 via 258 at 2.01s
+R1 - STRATEGY received Interest: /aggregate/%01/seq=0 via 258 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
   PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%01 (InFaces=1, OutFaces=0)
-DEBUG: FIB table has 6 entries
+  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=0)
+DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
-  - Prefix: /aggregate (Nexthops: 1)
-    * Face: 258 Cost: 1
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
     * Face: 256 Cost: 0
   - Prefix: /localhost/nfd (Nexthops: 1)
@@ -533,263 +765,263 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 3
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 3
-  [Strategy] Extracted ID 1 from cross-strategy PIT entry
->> Received Interest /aggregate/%01 from face 258 requesting IDs = { 1 }
+>> Received Interest /aggregate/%01/seq=0 from face 258 requesting IDs = { 1 }
 If some IDs are still pending
-DEBUG: FIB table has 6 entries
+DEBUG: FIB table has 5 entries
 DEBUG: Processing 1 pending IDs: [ 1 ]
 DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
 DEBUG: Selected Face 257 for ID 1
 OPTIMIZATION: All 1 IDs route to the same face (ID: 257).
-  >> Creating optimized interest with only pending IDs: /aggregate/%01
-MAC TX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=37
-MAC RX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=37
-MAC RX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=37
-MAC RX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=37
-MAC RX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=37
+  >> Forwarding original interest directly - no optimization needed
+MAC TX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=40
+  [PRESERVED] Restored InRecord for face 258 in PIT entry for /aggregate/%01/seq=0
+MAC RX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
 
-Node 2 received Interest: /aggregate/%02 via app face 258
-Checking if ID 2 matches node ID 2 (index 2): yes
-PRODUCER 2: Before sending data, checking local PIT:
-  Found 2 total PIT entries
-  PIT entry: /aggregate/%02 (InFaces=1, OutFaces=1)
-    MATCH for current interest! Details:
-    IN face: 257
-    OUT face: 258
+P2 - STRATEGY received Interest: /aggregate/%02/seq=0 via 257 at 1.01s
+Current PIT entries before forwarding Interest:
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-Node 2 produced Data for /aggregate/%02 with value = 2 (replying via app face 258) at 2.01s
+DEBUG: FIB table has 5 entries
+DEBUG: Current FIB entries:
+  - Prefix: /localhost/nfd/rib (Nexthops: 1)
+    * Face: 256 Cost: 0
+  - Prefix: /localhost/nfd (Nexthops: 1)
+    * Face: 1 Cost: 0
+  - Prefix: /aggregate/%01 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%03 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%02 (Nexthops: 1)
+    * Face: 258 Cost: 0
+>> Received Interest /aggregate/%02/seq=0 from face 257 requesting IDs = { 2 }
+If some IDs are still pending
+DEBUG: FIB table has 5 entries
+DEBUG: Processing 1 pending IDs: [ 2 ]
+DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
+DEBUG: Selected Face 258 for ID 2
+OPTIMIZATION: All 1 IDs route to the same face (ID: 258).
+  >> Forwarding original interest directly - no optimization needed
+  [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%02/seq=0
+MAC RX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
 
-Node 3 received Interest: /aggregate/%03 via app face 258
-Checking if ID 3 matches node ID 3 (index 3): yes
-PRODUCER 3: Before sending data, checking local PIT:
-  Found 2 total PIT entries
-  PIT entry: /aggregate/%03 (InFaces=1, OutFaces=1)
-    MATCH for current interest! Details:
-    IN face: 257
-    OUT face: 258
+P3 - STRATEGY received Interest: /aggregate/%03/seq=0 via 257 at 1.01s
+Current PIT entries before forwarding Interest:
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-Node 3 produced Data for /aggregate/%03 with value = 3 (replying via app face 258) at 2.01s
+DEBUG: FIB table has 5 entries
+DEBUG: Current FIB entries:
+  - Prefix: /localhost/nfd/rib (Nexthops: 1)
+    * Face: 256 Cost: 0
+  - Prefix: /localhost/nfd (Nexthops: 1)
+    * Face: 1 Cost: 0
+  - Prefix: /aggregate/%01 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%03 (Nexthops: 1)
+    * Face: 258 Cost: 0
+  - Prefix: /aggregate/%02 (Nexthops: 1)
+    * Face: 257 Cost: 4
+>> Received Interest /aggregate/%03/seq=0 from face 257 requesting IDs = { 3 }
+If some IDs are still pending
+DEBUG: FIB table has 5 entries
+DEBUG: Processing 1 pending IDs: [ 3 ]
+DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
+DEBUG: Selected Face 258 for ID 3
+OPTIMIZATION: All 1 IDs route to the same face (ID: 258).
+  >> Forwarding original interest directly - no optimization needed
+  [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%03/seq=0
+MAC RX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
 
-Node 1 received Interest: /aggregate/%01 via app face 258
-Checking if ID 1 matches node ID 1 (index 1): yes
-PRODUCER 1: Before sending data, checking local PIT:
-  Found 2 total PIT entries
-  PIT entry: /aggregate/%01 (InFaces=1, OutFaces=1)
-    MATCH for current interest! Details:
-    IN face: 257
-    OUT face: 258
+P1 - STRATEGY received Interest: /aggregate/%01/seq=0 via 257 at 1.01s
+Current PIT entries before forwarding Interest:
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=0)
   PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
-Node 1 produced Data for /aggregate/%01 with value = 1 (replying via app face 258) at 2.01s
+DEBUG: FIB table has 5 entries
+DEBUG: Current FIB entries:
+  - Prefix: /localhost/nfd/rib (Nexthops: 1)
+    * Face: 256 Cost: 0
+  - Prefix: /localhost/nfd (Nexthops: 1)
+    * Face: 1 Cost: 0
+  - Prefix: /aggregate/%01 (Nexthops: 1)
+    * Face: 258 Cost: 0
+  - Prefix: /aggregate/%03 (Nexthops: 1)
+    * Face: 257 Cost: 4
+  - Prefix: /aggregate/%02 (Nexthops: 1)
+    * Face: 257 Cost: 4
+>> Received Interest /aggregate/%01/seq=0 from face 257 requesting IDs = { 1 }
+If some IDs are still pending
+DEBUG: FIB table has 5 entries
+DEBUG: Processing 1 pending IDs: [ 1 ]
+DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
+DEBUG: Selected Face 258 for ID 1
+OPTIMIZATION: All 1 IDs route to the same face (ID: 258).
+  >> Forwarding original interest directly - no optimization needed
+  [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%01/seq=0
+MAC RX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
 
-Node 2 detected self-produced data: /aggregate/%02 (injecting into network)
-Node 2 attempting explicit forwarding of /aggregate/%02
-  Face Table size: 7
-  Found network interface: netdev://[00:00:00:00:00:03] (ID: 257)
-Node 2 EXPLICITLY forwarding data /aggregate/%02 to network face 257
-MAC TX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=359
+Node 2 received Interest: /aggregate/%02/seq=0 via app face 258
+* Node 2 received direct request for its data
+Node 2 produced Data with value = 2 at 1.01s
 
-Node 3 detected self-produced data: /aggregate/%03 (injecting into network)
-Node 3 attempting explicit forwarding of /aggregate/%03
-  Face Table size: 7
-  Found network interface: netdev://[00:00:00:00:00:05] (ID: 257)
-Node 3 EXPLICITLY forwarding data /aggregate/%03 to network face 257
-MAC TX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=359
+Node 3 received Interest: /aggregate/%03/seq=0 via app face 258
+* Node 3 received direct request for its data
+Node 3 produced Data with value = 3 at 1.01s
 
-Node 1 detected self-produced data: /aggregate/%01 (injecting into network)
-Node 1 attempting explicit forwarding of /aggregate/%01
-  Face Table size: 7
-  Found network interface: netdev://[00:00:00:00:00:01] (ID: 257)
-Node 1 EXPLICITLY forwarding data /aggregate/%01 to network face 257
-MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=359
-LOW LEVEL [R2]: Data received /aggregate/%02 for PIT entry /aggregate/%02 on face 257
-MAC TX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=359
-MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
-LOW LEVEL [R3]: Data received /aggregate/%03 for PIT entry /aggregate/%03 on face 257
-MAC TX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=359
-MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
-LOW LEVEL [R1]: Data received /aggregate/%01 for PIT entry /aggregate/%01 on face 257
-MAC TX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=359
-MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
-MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=359
-MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=359
-MAC RX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=359
+Node 1 received Interest: /aggregate/%01/seq=0 via app face 258
+* Node 1 received direct request for its data
+Node 1 produced Data with value = 1 at 1.01s
 
------ FACE STATS FOR NODE 2 -----
-  Face Table size: 7
-  Face ID: 1
-    nInInterests: 0
-    nOutInterests: 15
-    nInData: 16
-    nOutData: 0
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 2
-    nInInterests: 9
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 8
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 254
-    nInInterests: 0
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 0
-    LocalUri: contentstore://
-    RemoteUri: contentstore://
-  Face ID: 256
-    nInInterests: 7
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 6
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 257
-    nInInterests: 1
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 1
-    LocalUri: netdev://[00:00:00:00:00:03]
-    RemoteUri: netdev://[00:00:00:00:00:04]
-  Face ID: 258
-    nInInterests: 0
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 1
-    LocalUri: appFace://
-    RemoteUri: appFace://
-  Face ID: 259
-    nInInterests: 0
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 0
-    LocalUri: appFace://
-    RemoteUri: appFace://
-------------------------------
+Node 2 received Data: /aggregate/%02/seq=0
+* Node 2 received self-produced data - forwarding to network
+  Found network face 257 for data injection
+  Creating properly formatted Data packet for: /aggregate/%02/seq=0
+  Sending properly formatted Data packet via face 257
+MAC TX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 
------ FACE STATS FOR NODE 3 -----
-  Face Table size: 7
-  Face ID: 1
-    nInInterests: 0
-    nOutInterests: 15
-    nInData: 17
-    nOutData: 0
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 2
-    nInInterests: 9
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 8
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 254
-    nInInterests: 0
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 0
-    LocalUri: contentstore://
-    RemoteUri: contentstore://
-  Face ID: 256
-    nInInterests: 7
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 6
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 257
-    nInInterests: 1
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 1
-    LocalUri: netdev://[00:00:00:00:00:05]
-    RemoteUri: netdev://[00:00:00:00:00:06]
-  Face ID: 258
-    nInInterests: 0
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 1
-    LocalUri: appFace://
-    RemoteUri: appFace://
-  Face ID: 259
-    nInInterests: 0
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 0
-    LocalUri: appFace://
-    RemoteUri: appFace://
-------------------------------
+Node 3 received Data: /aggregate/%03/seq=0
+* Node 3 received self-produced data - forwarding to network
+  Found network face 257 for data injection
+  Creating properly formatted Data packet for: /aggregate/%03/seq=0
+  Sending properly formatted Data packet via face 257
+MAC TX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 
------ FACE STATS FOR NODE 1 -----
-  Face Table size: 7
-  Face ID: 1
-    nInInterests: 0
-    nOutInterests: 15
-    nInData: 17
-    nOutData: 0
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 2
-    nInInterests: 9
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 8
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 254
-    nInInterests: 0
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 0
-    LocalUri: contentstore://
-    RemoteUri: contentstore://
-  Face ID: 256
-    nInInterests: 7
-    nOutInterests: 0
-    nInData: 0
-    nOutData: 6
-    LocalUri: internal://
-    RemoteUri: internal://
-  Face ID: 257
-    nInInterests: 1
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 1
-    LocalUri: netdev://[00:00:00:00:00:01]
-    RemoteUri: netdev://[00:00:00:00:00:02]
-  Face ID: 258
-    nInInterests: 0
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 1
-    LocalUri: appFace://
-    RemoteUri: appFace://
-  Face ID: 259
-    nInInterests: 0
-    nOutInterests: 1
-    nInData: 0
-    nOutData: 0
-    LocalUri: appFace://
-    RemoteUri: appFace://
-------------------------------
-Time: 3s
-Time: 4s
-!! PIT EXPIRED: /aggregate/%02/%03 at 4.00s
-  [Expired] 2 pending IDs: { 2 3 }
-LOW LEVEL [R1]: PIT entry expiring /aggregate/%02/%03
-!! PIT EXPIRED: /aggregate/%01/%03 at 4.00s
-  [Expired] 2 pending IDs: { 1 3 }
-LOW LEVEL [R2]: PIT entry expiring /aggregate/%01/%03
-!! PIT EXPIRED: /aggregate/%01/%02 at 4.00s
-  [Expired] 2 pending IDs: { 1 2 }
-LOW LEVEL [R3]: PIT entry expiring /aggregate/%01/%02
-!! PIT EXPIRED: /aggregate/%02/%03 at 4.00s
-  [Expired] 2 pending IDs: { 2 3 }
-!! PIT EXPIRED: /aggregate/%01/%03 at 4.00s
-  [Expired] 1 pending IDs: { 1 }
-!! PIT EXPIRED: /aggregate/%01/%02 at 4.00s
-  [Expired] 0 pending IDs: { }
-Time: 5s
-[Inferior 1 (process 881570) exited normally]
+Node 1 received Data: /aggregate/%01/seq=0
+* Node 1 received self-produced data - forwarding to network
+  Found network face 257 for data injection
+  Creating properly formatted Data packet for: /aggregate/%01/seq=0
+  Sending properly formatted Data packet via face 257
+MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
+
+!! RAW DATA RECEIVED BY FORWARDER: R2 received data /aggregate/%02/seq=0 from face 257
+  PIT ENTRY BEFORE SATISFACTION: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
+  InFaces: 258
+MAC TX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
+
+!!! R2 RECEIVED DATA ON FACE 257: /aggregate/%02/seq=0
+  === PIT STATE ON R2 ===
+  Total PIT entries: 3
+    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+    PIT entry: /aggregate/%02/seq=0 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /aggregate/%02/seq=0
+      In faces:
+MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
+
+!! RAW DATA RECEIVED BY FORWARDER: R3 received data /aggregate/%03/seq=0 from face 257
+  PIT ENTRY BEFORE SATISFACTION: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
+  InFaces: 258
+MAC TX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
+
+!!! R3 RECEIVED DATA ON FACE 257: /aggregate/%03/seq=0
+  === PIT STATE ON R3 ===
+  Total PIT entries: 3
+    PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+    PIT entry: /aggregate/%03/seq=0 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /aggregate/%03/seq=0
+      In faces:
+MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
+
+!! RAW DATA RECEIVED BY FORWARDER: R1 received data /aggregate/%01/seq=0 from face 257
+  PIT ENTRY BEFORE SATISFACTION: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
+  InFaces: 258
+MAC TX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
+
+!!! R1 RECEIVED DATA ON FACE 257: /aggregate/%01/seq=0
+  === PIT STATE ON R1 ===
+  Total PIT entries: 3
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+    PIT entry: /aggregate/%01/seq=0 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /aggregate/%01/seq=0
+      In faces:
+MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
+
+!! RAW DATA RECEIVED BY FORWARDER: C1 received data /aggregate/%02/seq=0 from face 258
+  PIT ENTRY BEFORE SATISFACTION: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
+  InFaces: 257
+MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
+
+!!! C1 RECEIVED DATA ON FACE 258: /aggregate/%02/seq=0
+  === PIT STATE ON C1 ===
+  Total PIT entries: 7
+    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /aggregate/%02/seq=0 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /aggregate/%02/seq=0
+      In faces:
+    PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
+
+!! RAW DATA RECEIVED BY FORWARDER: C1 received data /aggregate/%03/seq=0 from face 259
+  PIT ENTRY BEFORE SATISFACTION: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
+  InFaces: 257
+MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
+
+!!! C1 RECEIVED DATA ON FACE 259: /aggregate/%03/seq=0
+  === PIT STATE ON C1 ===
+  Total PIT entries: 7
+    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%03/seq=0 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /aggregate/%03/seq=0
+      In faces:
+    PIT entry: /aggregate/%02/seq=0 (InFaces=0, OutFaces=0)
+    PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=362
+
+!! RAW DATA RECEIVED BY FORWARDER: C1 received data /aggregate/%01/seq=0 from face 257
+  PIT ENTRY BEFORE SATISFACTION: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
+  InFaces: 258
+MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
+
+!!! C1 RECEIVED DATA ON FACE 257: /aggregate/%01/seq=0
+  === PIT STATE ON C1 ===
+  Total PIT entries: 7
+    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%03/seq=0 (InFaces=0, OutFaces=0)
+    PIT entry: /aggregate/%02/seq=0 (InFaces=0, OutFaces=0)
+    PIT entry: /aggregate/%01/seq=0 (InFaces=0, OutFaces=0)
+    **** MATCH FOUND **** for data: /aggregate/%01/seq=0
+      In faces:
+    PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+MAC RX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
+
+!!! R1 RECEIVED DATA ON FACE 258: /aggregate/%02/seq=0
+  === PIT STATE ON R1 ===
+  Total PIT entries: 2
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+    **** NO MATCHING PIT ENTRY **** for data: /aggregate/%02/seq=0
+    This data will be dropped by the forwarder
+MAC RX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
+
+!!! R2 RECEIVED DATA ON FACE 258: /aggregate/%01/seq=0
+  === PIT STATE ON R2 ===
+  Total PIT entries: 2
+    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+    **** NO MATCHING PIT ENTRY **** for data: /aggregate/%01/seq=0
+    This data will be dropped by the forwarder
+MAC RX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
+
+!!! R1 RECEIVED DATA ON FACE 258: /aggregate/%03/seq=0
+  === PIT STATE ON R1 ===
+  Total PIT entries: 2
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
+    PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+    **** NO MATCHING PIT ENTRY **** for data: /aggregate/%03/seq=0
+    This data will be dropped by the forwarder
+MAC RX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
+[Inferior 1 (process 1014927) exited normally]
 [Program stopped: printing stack trace]Error while running hook_stop:
 No stack.

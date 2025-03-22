@@ -36,9 +36,11 @@ public:
   void 
   beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pitEntry);
 
-  void 
-  beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
-                        const FaceEndpoint& ingress, const Data& data);
+  // Fix the declaration in the header:
+  virtual void
+  beforeSatisfyInterest(const Data& data,
+                      const FaceEndpoint& ingress, 
+                      const shared_ptr<pit::Entry>& pitEntry) override;
 
 private:
   // Store our own reference to the Forwarder

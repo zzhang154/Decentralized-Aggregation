@@ -274,6 +274,11 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       std::cout << "[Strategy] Forwarding regular Interest " 
               << interestName << " to face " << outFace.getId() << std::endl;
       this->sendInterest(interest, outFace, pitEntry);
+
+      // CRITICAL FIX: Preserve the InRecord that NDN removes during forwarding
+      pitEntry->insertOrUpdateInRecord(ingress.face, interest);
+      std::cout << "  [PRESERVED] Restored InRecord for face " << ingress.face.getId() 
+                << " in PIT entry for " << interest.getName() << std::endl;
     }
     return;
   }
@@ -536,12 +541,33 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
 
         // Send using the new PIT entry
         this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
+
+        // CRITICAL FIX: Since this is a new PIT entry, copy the original InRecords
+        for (const auto& inRecord : pitEntry->getInRecords()) {
+          newPitEntry->insertOrUpdateInRecord(inRecord.getFace(), *optimizedInterest);
+          std::cout << "  [PRESERVED] Copied InRecord from original PIT entry (face " 
+                    << inRecord.getFace().getId() << ") to optimized PIT entry" << std::endl;
+        }
+
+        // If there were no InRecords in the original, use the ingress face
+        if (pitEntry->getInRecords().empty()) {
+          newPitEntry->insertOrUpdateInRecord(ingress.face, *optimizedInterest);
+          std::cout << "  [PRESERVED] Added ingress face " << ingress.face.getId() 
+                    << " as InRecord for optimized PIT entry" << std::endl;
+        }
+
       } 
       else {
         // The original interest already has exactly what we need, just forward it directly
         std::cout << "  >> Forwarding original interest directly - no optimization needed" << std::endl;
         this->sendInterest(interest, *outFace, pitEntry);
+
+        // CRITICAL FIX: Restore the InRecord that NDN removed during forwarding
+        pitEntry->insertOrUpdateInRecord(ingress.face, interest);
+        std::cout << "  [PRESERVED] Restored InRecord for face " << ingress.face.getId() 
+                  << " in PIT entry for " << interest.getName() << std::endl;
       }
+
       this->setExpiryTimer(pitEntry, interest.getInterestLifetime());
       return;
     }
@@ -600,6 +626,11 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
 
       this->sendInterest(*subInterest, *outFace, temporaryEntry);
 
+      // CRITICAL FIX: Add an InRecord to the new PIT entry, using the original ingress face
+      temporaryEntry->insertOrUpdateInRecord(ingress.face, *subInterest);
+      std::cout << "  [PRESERVED] Added InRecord from original face " << ingress.face.getId()
+                << " to sub-interest PIT entry for " << subInterestName << std::endl;
+
       // After forwarding, find the newly created PIT entry and attach our metadata
       shared_ptr<pit::Entry> subPitEntry = m_forwarder.getPit().find(*subInterest);
 
@@ -633,6 +664,7 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
   // Note: We do NOT call sendInterest on the original Interest name itself, since it has been split.
   // We keep the PIT entry alive until all needed data arrives (handled in afterReceiveData).
   this->setExpiryTimer(pitEntry, interest.getInterestLifetime());
+  return;
 }
 
 // ** Handling incoming Data packets (from upstream) **
@@ -957,20 +989,28 @@ AggregateStrategy::beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pit
 }
 
 // Add this method to AggregateStrategy class - it's called before the forwarder processes any data
-void 
-AggregateStrategy::beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
-                                         const FaceEndpoint& ingress, const Data& data)
+void
+AggregateStrategy::beforeSatisfyInterest(const Data& data,
+                                     const FaceEndpoint& ingress,
+                                     const shared_ptr<pit::Entry>& pitEntry)
 {
   std::cout << "\n!! RAW DATA RECEIVED BY FORWARDER: " << getNodeRoleString() 
             << " received data " << data.getName() 
             << " from face " << ingress.face.getId() << std::endl;
   
-  // Check if there's a matching PIT entry
-  std::cout << "  PIT entry name: " << pitEntry->getName() << std::endl;
-  std::cout << "  # in-records: " << pitEntry->getInRecords().size() << std::endl; 
-  std::cout << "  # out-records: " << pitEntry->getOutRecords().size() << std::endl;
+  // Print PIT entry state BEFORE it gets cleared by the forwarder
+  std::cout << "  PIT ENTRY BEFORE SATISFACTION: " << pitEntry->getName()
+            << " (InFaces=" << pitEntry->getInRecords().size()
+            << ", OutFaces=" << pitEntry->getOutRecords().size() << ")" << std::endl;
+            
+  // Print all InFaces so we know where data should go
+  std::cout << "  InFaces:";
+  for (const auto& inRecord : pitEntry->getInRecords()) {
+    std::cout << " " << inRecord.getFace().getId();
+  }
+  std::cout << std::endl;
   
-  // Continue normal processing - FIX THE ARGUMENT ORDER HERE
+  // Call the base implementation with correct parameter order
   Strategy::beforeSatisfyInterest(data, ingress, pitEntry);
 }
 
