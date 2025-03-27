@@ -14,6 +14,8 @@
 #include "ns3/uinteger.h" // Add this for UintegerValue
 #include "ns3/config.h"   // Add this for Config::GetGlobal
 
+#include "ns3/ndnSIM/utils/ndn-aggregate-utils.hpp"
+
 NS_LOG_COMPONENT_DEFINE("ndn.AggregateStrategy");
 
 namespace nfd {
@@ -57,7 +59,7 @@ AggregateStrategy::AggregateStrategy(Forwarder& forwarder, const Name& name)
   registerPitExpirationCallback();
 
   std::cout << "AggregateStrategy initialized for Forwarder." << std::endl;
-  std::cout << "Strategy will use virtual method overrides." << std::endl << std::flush;  
+  std::cout << "Strategy will use virtual method overrides." << std::endl << std::flush;
 }
 
 // Add these new methods:
@@ -163,6 +165,18 @@ AggregateStrategy::getAggregatePitInfo(const std::shared_ptr<pit::Entry>& pitEnt
     info->partialSum = 0;
   }
   return info;
+}
+
+// Add this new method for processing data for aggregation:
+void
+AggregateStrategy::processDataForAggregation(const Data& data, const FaceEndpoint& ingress,
+                                           const shared_ptr<pit::Entry>& pitEntry)
+{
+  // Check PIT entry state before NDN clears it
+  std::cout << "  PROCESSING DATA: " << data.getName()
+            << " for PIT entry: " << pitEntry->getName()
+            << " (InFaces=" << pitEntry->getInRecords().size()
+            << ", OutFaces=" << pitEntry->getOutRecords().size() << ")" << std::endl;
 }
 
 // ** Main logic for processing incoming Interests **
@@ -428,23 +442,29 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       return;
     }
     else if (existingIsSubset) {
-      // A pending Interest is a subset of the new Interest (i.e., part of new Interest's data is already being fetched).
       std::cout << "  [Subset] Interest " << existingName.toUri() 
                 << " is a subset of new Interest " << interestName.toUri() << std::endl << std::flush;
-      // We can piggyback on the existing subset for overlapping IDs, and only fetch the missing IDs.
-      // Overlapping IDs = existingIds (the subset)
+      
+      // NEW: Create a WaitInfo structure to track dependencies
+      if (!pitInfo->waitInfo) {
+        pitInfo->waitInfo = std::make_shared<WaitInfo>();
+      }
+      
+      // Track which IDs are coming from which interests
       for (int overlapId : existingIds) {
         if (pitInfo->pendingIds.find(overlapId) != pitInfo->pendingIds.end()) {
-          // Remove overlapping IDs from new Interest's pending set (they will be provided by subset interest)
+          // Remove from pendingIds, but add to waitingFor map
           pitInfo->pendingIds.erase(overlapId);
+          pitInfo->waitInfo->waitingFor[overlapId] = entryRef.getName();
+          
+          std::cout << "  [Tracking] ID " << overlapId << " will come from " 
+                    << entryRef.getName().toUri() << std::endl << std::flush;
         }
       }
+      
       // Link new interest to wait for the subset's Data
-      Name subsetDataName = entryRef.getName(); // data will use the same name as interest
+      Name subsetDataName = entryRef.getName();
       m_waitingInterests[subsetDataName].push_back(pitEntry);
-      // Now, proceed to forward requests for the remaining (non-overlap) IDs only
-      // (We break out of loop to perform forwarding of the rest)
-      // break; // <-- REMOVE THIS LINE - it's causing the problem!
     }
   }
 
@@ -653,8 +673,8 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
                   << " to face " << outFace->getId() << " (new PIT entry created)" << std::endl;
       }
     }
-    // All necessary sub-interests have been forwarded.
-    // We will wait for their Data responses to aggregate.
+  // All necessary sub-interests have been forwarded.
+  // We will wait for their Data responses to aggregate.
   }
   else {
     // If no pending IDs to forward (somehow fully piggybacked on existing interests), we just wait.
@@ -700,241 +720,12 @@ AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingres
                 << ", OutFaces=" << entry.getOutRecords().size() << ")" << std::endl;
   }
 
-  // Check if this Data corresponds to a sub-Interest that was sent out (i.e., part of an aggregated request)
-  auto parentIt = m_parentMap.find(dataName);
-  if (parentIt != m_parentMap.end()) {
-    std::cout << "  [SubInterest] Found matching parent for Data " << dataName.toUri() << std::endl << std::flush;
-    // This data is a response to a sub-interest that our strategy created.
-    // Retrieve the parent PIT entry that initiated this sub-interest
-    std::shared_ptr<pit::Entry> parentPit = parentIt->second.lock();
-    if (parentPit) {
-      AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
-      if (parentInfo) {
-        std::cout << "  [SubInterest] Processing Data for parent Interest " << parentPit->getName().toUri() << std::endl << std::flush;
-        // Parse the content of the Data to extract the numeric value (partial sum or single value)
-        uint64_t value = 0;
-        // Assume content is exactly an 8-byte integer in network byte order
-        if (data.getContent().value_size() >= sizeof(uint64_t)) {
-          uint64_t netBytes;
-          std::memcpy(&netBytes, data.getContent().value(), sizeof(uint64_t));
-          value = be64toh(netBytes);
-        } else {
-          // If content is not 8 bytes, we try to interpret it as text
-          std::string text(reinterpret_cast<const char*>(data.getContent().value()),
-                           data.getContent().value_size());
-          try {
-            value = std::stoull(text);
-          } catch (...) {
-            value = 0;
-          }
-        }
-
-        // Determine which IDs this data covers (from its name components)
-        std::set<int> dataIds;
-        for (size_t i = 1; i < dataName.size(); ++i) {
-          try {
-            dataIds.insert(std::stoi(dataName[i].toUri()));
-          } catch (...) { }
-        }
-
-        // Update parent's partial sum and mark these IDs as fulfilled
-        parentInfo->partialSum += value;
-        for (int fulfilledId : dataIds) {
-          parentInfo->pendingIds.erase(fulfilledId);
-          // If this was a single-ID data, cache it for future Interests
-          if (dataIds.size() == 1) {
-            m_cachedValues[fulfilledId] = value;  // store in local cache
-            std::cout << "  [Cache] Stored value " << value << " for single ID " << fulfilledId << std::endl << std::flush;
-          }
-        }
-        std::cout << "    [Aggregation] Data " << dataName.toUri() << " contributes value " 
-                  << value << " to parent Interest " << parentPit->getName().toUri() << std::endl;
-        std::cout << "    Remaining IDs for parent: { ";
-        for (int pid : parentInfo->pendingIds) std::cout << pid << " ";
-        std::cout << "}" << std::endl << std::flush;
-
-        // If all components for the parent interest have arrived (pending set empty), produce the aggregated Data
-        if (parentInfo->pendingIds.empty()) {
-          std::cout << "  [SubInterest] All components received, creating final aggregated Data" << std::endl << std::flush;
-          uint64_t totalSum = parentInfo->partialSum;
-          Name parentName = parentPit->getName();
-          auto aggData = std::make_shared<ndn::Data>(parentName);
-          uint64_t sumNbo = htobe64(totalSum);
-          std::shared_ptr<ndn::Buffer> buffer = std::make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(&sumNbo), sizeof(sumNbo));
-          aggData->setContent(buffer);
-          aggData->setFreshnessPeriod(::ndn::time::milliseconds(1000));
-          // WITH THIS CORRECT VERSION (BUG FIX WITH parentPit->):
-            for (const auto& inRecord : parentPit->getInRecords()) {
-                Face& outFace = inRecord.getFace();
-                this->sendData(*aggData, outFace, parentPit);
-            }
-          std::cout << "<< Generated aggregate Data " << parentName.toUri() 
-                    << " with sum = " << totalSum << std::endl << std::flush;
-
-          // Cache the aggregated result in local store as well
-          // (so future identical Interests can be satisfied quickly)
-          // We store aggregated results by each component ID as well, for reuse in subsets.
-          for (int id : parentInfo->neededIds) {
-            // If the parent covered multiple IDs, we only cache the final combined sum under the full name,
-            // but caching each individual id's value is already handled when those atomic pieces arrived.
-          }
-
-          // If any other Interests were piggybacking on this parent Interest, satisfy them as well
-          if (!parentInfo->dependentInterests.empty()) {
-            std::cout << "  [SubInterest] Satisfying " << parentInfo->dependentInterests.size() 
-                      << " piggybacked child interests" << std::endl << std::flush;
-          }
-          for (auto& weakChildPit : parentInfo->dependentInterests) {
-            auto childPit = weakChildPit.lock();
-            if (!childPit) continue;
-            // Compute the subset sum for the child (it might be different from totalSum if parent had extra IDs)
-            AggregatePitInfo* childInfo = childPit->getStrategyInfo<AggregatePitInfo>();
-            if (childInfo) {
-              // Sum up values for child's needed IDs from our cached values (all should be available now)
-              uint64_t childSum = 0;
-              for (int cid : childInfo->neededIds) {
-                // If child's needed ID is in parent's needed, we should have its value (either cached atomic or part of totalSum).
-                // If parent's interest had extra IDs not needed by child, those are simply ignored in child's sum.
-                if (m_cachedValues.find(cid) != m_cachedValues.end()) {
-                  childSum += m_cachedValues[cid];
-                }
-              }
-              // Send Data to satisfy the child interest
-              Name childName = childPit->getName();
-              auto childData = std::make_shared<ndn::Data>(childName);
-              uint64_t childSumNbo = htobe64(childSum);
-              // With one of these alternatives:
-              // Option 1:
-              std::shared_ptr<ndn::Buffer> buffer = std::make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(&childSumNbo), sizeof(childSumNbo));
-              childData->setContent(buffer);
-              childData->setFreshnessPeriod(::ndn::time::milliseconds(1000));
-
-              // NEW (corrected) -- BUG FIX: use childPit instead of pitEntry->getInRecords()
-              for (const auto& inRecord : childPit->getInRecords()) {
-                  Face& outFace = inRecord.getFace();
-                  this->sendData(*childData, outFace, childPit);
-              }
-              std::cout << "<< Satisfied piggybacked Interest " << childName.toUri() 
-                        << " with sum = " << childSum << std::endl;
-            }
-          }
-        }
-      }
-      else {
-        std::cout << "  [SubInterest] No strategy info found for parent PIT entry" << std::endl << std::flush;
-      }
-    }
-    else {
-      std::cout << "  [SubInterest] Parent PIT entry already expired" << std::endl << std::flush;
-    }
-    // Remove the mapping as this sub-interest's data has been processed
-    m_parentMap.erase(dataName);
-  }
-
-  // Next, check if this Data corresponds to an interest that other PIT entries were waiting on (piggybacked subset case)
-  auto waitIt = m_waitingInterests.find(dataName);
-  if (waitIt != m_waitingInterests.end()) {
-    std::cout << "  [WaitingInterest] Found " << waitIt->second.size() 
-              << " interests waiting for Data " << dataName.toUri() << std::endl << std::flush;
-    // One or more interests were waiting for this data (they piggybacked on some other interest that fetched this data).
-    for (auto& weakPit : waitIt->second) {
-      auto waitingPit = weakPit.lock();
-      if (!waitingPit) {
-        std::cout << "  [WaitingInterest] Skipping expired waiting interest" << std::endl << std::flush;
-        continue;
-      }
-      AggregatePitInfo* waitingInfo = waitingPit->getStrategyInfo<AggregatePitInfo>();
-      if (!waitingInfo) {
-        std::cout << "  [WaitingInterest] Skipping waiting interest without strategy info" << std::endl << std::flush;
-        continue;
-      }
-      // The Data received covers all IDs in 'dataName'. If those IDs are part of the waiting interest, mark them satisfied.
-      std::set<int> dataIds;
-      for (size_t i = 1; i < dataName.size(); ++i) {
-        try {
-          dataIds.insert(std::stoi(dataName[i].toUri()));
-        } catch (...) { }
-      }
-      uint64_t value = 0;
-      if (data.getContent().value_size() >= sizeof(uint64_t)) {
-        uint64_t netBytes;
-        std::memcpy(&netBytes, data.getContent().value(), sizeof(uint64_t));
-        value = be64toh(netBytes);
-      } else {
-        std::string text(reinterpret_cast<const char*>(data.getContent().value()),
-                         data.getContent().value_size());
-        try { value = std::stoull(text); } catch (...) { value = 0; }
-      }
-      // If the data was an aggregate of multiple IDs, we cannot extract individual values, 
-      // so we'll treat it as one combined piece.
-      // Add to waiting interest's partial sum and remove those IDs from pending.
-      waitingInfo->partialSum += value;
-      for (int gotId : dataIds) {
-        waitingInfo->pendingIds.erase(gotId);
-      }
-      std::cout << "    [Piggyback] Data " << dataName.toUri() << " received for waiting Interest " 
-                << waitingPit->getName().toUri() << std::endl;
-      // If that waiting interest now has no pending IDs left, we can produce its final Data.
-      if (waitingInfo->pendingIds.empty()) {
-        std::cout << "  [WaitingInterest] All components received for waiting interest, creating final Data" << std::endl << std::flush;
-        uint64_t totalSum = waitingInfo->partialSum;
-        Name waitName = waitingPit->getName();
-        auto finalData = std::make_shared<ndn::Data>(waitName);
-        uint64_t sumNbo = htobe64(totalSum);
-        // With one of these alternatives:
-        // Option 1:
-        std::shared_ptr<ndn::Buffer> buffer = std::make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(&sumNbo), sizeof(sumNbo));
-        finalData->setContent(buffer);
-        finalData->setFreshnessPeriod(::ndn::time::milliseconds(1000));
-        
-        // WITH THIS CORRECT VERSION (BUG FIX WITH waitingPit->):
-        for (const auto& inRecord : waitingPit->getInRecords()) {
-            Face& outFace = inRecord.getFace();
-            this->sendData(*finalData, outFace, waitingPit);
-        }
-
-        std::cout << "<< Delivered aggregated Data " << waitName.toUri() 
-                  << " with sum = " << totalSum << " (via piggyback)" << std::endl << std::flush;
-      }
-      else {
-        std::cout << "  [WaitingInterest] Interest still waiting for " << waitingInfo->pendingIds.size() 
-                  << " more IDs" << std::endl << std::flush;
-      }
-    }
-    // Remove this entry from waiting list after processing
-    m_waitingInterests.erase(waitIt);
-  }
-
-  // If this Data was for an original aggregate Interest (no parent, not a sub-interest):
-  if (m_parentMap.find(dataName) == m_parentMap.end()) {
-    std::cout << "  [DirectData] Processing regular Data packet (not sub-interest)" << std::endl << std::flush;
-    // If dataName is atomic, cache its value
-    if (dataName.size() == 2) { // form "/aggregate/<id>"
-      std::cout << "  [DirectData] Processing atomic data for single ID" << std::endl << std::flush;
-      try {
-        int id = std::stoi(dataName.get(1).toUri());
-        uint64_t val = 0;
-        if (data.getContent().value_size() >= sizeof(uint64_t)) {
-          uint64_t netBytes;
-          std::memcpy(&netBytes, data.getContent().value(), sizeof(uint64_t));
-          val = be64toh(netBytes);
-        }
-        else {
-          std::string text(reinterpret_cast<const char*>(data.getContent().value()),
-                           data.getContent().value_size());
-          try { val = std::stoull(text); } catch (...) { val = 0; }
-        }
-        m_cachedValues[id] = val;
-        std::cout << "  [CacheStore] Cached value for ID " << id << " = " << val << std::endl << std::flush;
-      } catch (...) { 
-        std::cout << "  [DirectData] Failed to parse ID as integer" << std::endl << std::flush;
-      }
-    }
-  }
+  // Process data using our modular approach
+  processSubInterestData(data, dataName, ingress, pitEntry);
+  processWaitingInterestData(data, dataName, ingress, pitEntry);
+  processDirectData(data, dataName, ingress, pitEntry);
 
   // ** Forward the Data down to any PIT downstreams as usual (if not already handled) **
-  
-  // WITH THIS CORRECT VERSION:
   int recordCount = 0;
   for (const auto& inRecord : pitEntry->getInRecords()) {
       Face& outFace = inRecord.getFace();
@@ -1010,8 +801,334 @@ AggregateStrategy::beforeSatisfyInterest(const Data& data,
   }
   std::cout << std::endl;
   
-  // Call the base implementation with correct parameter order
-  Strategy::beforeSatisfyInterest(data, ingress, pitEntry);
+  // *** ADD DATA AGGREGATION LOGIC HERE, BEFORE PIT RECORDS ARE CLEARED ***
+  Name dataName = data.getName();
+  std::cout << "<< [beforeSatisfyInterest] Processing data: " << dataName.toUri() 
+            << " from face " << ingress.face.getId() << std::endl << std::flush;
+  
+  // Check if this data should be consumed by the strategy
+  bool isSubInterestResponse = (m_parentMap.find(dataName) != m_parentMap.end());
+  bool hasWaitingInterests = (m_waitingInterests.find(dataName) != m_waitingInterests.end());
+  
+  if (isSubInterestResponse || hasWaitingInterests) {
+    std::cout << "  [Consume] Data " << dataName.toUri() 
+              << " is being handled by the strategy - suppressing forwarding" << std::endl;
+    
+    // Process data using our modular approach - BEFORE PIT records are cleared
+    processSubInterestData(data, dataName, ingress, pitEntry);
+    processWaitingInterestData(data, dataName, ingress, pitEntry);
+    processDirectData(data, dataName, ingress, pitEntry);
+    
+    // For completely consumed data, block regular NDN forwarding by clearing all in-records
+    while (!pitEntry->getInRecords().empty()) {
+      const pit::InRecord& inRecord = pitEntry->getInRecords().front();
+      pitEntry->deleteInRecord(inRecord.getFace());
+    }
+    
+    // CRITICAL: Don't call the base class method for consumed data
+    // This completely prevents forwarding by the forwarder
+    return;
+  } 
+  else {
+    // For normal data that needs to flow downstream, let the forwarder handle it
+    std::cout << "  [Forward] Data " << dataName.toUri() 
+              << " will be forwarded downstream by forwarder" << std::endl;
+    
+    // Process data using our modular approach before base class handling
+    processSubInterestData(data, dataName, ingress, pitEntry);
+    processWaitingInterestData(data, dataName, ingress, pitEntry);
+    processDirectData(data, dataName, ingress, pitEntry);
+    
+    // Only call base implementation for non-consumed data
+    Strategy::beforeSatisfyInterest(data, ingress, pitEntry);
+  }
+}
+
+// Add these near the other helper methods:
+
+void 
+AggregateStrategy::processSubInterestData(const Data& data, const Name& dataName, 
+                                        const FaceEndpoint& ingress,
+                                        const shared_ptr<pit::Entry>& pitEntry)
+{
+  auto parentIt = m_parentMap.find(dataName);
+  if (parentIt == m_parentMap.end()) {
+    return; // Not a sub-interest
+  }
+
+  std::cout << "  [SubInterest] Found matching parent for Data " << dataName.toUri() << std::endl << std::flush;
+  // This data is a response to a sub-interest that our strategy created.
+  // Retrieve the parent PIT entry that initiated this sub-interest
+  std::shared_ptr<pit::Entry> parentPit = parentIt->second.lock();
+  if (!parentPit) {
+    std::cout << "  [SubInterest] Parent PIT entry already expired" << std::endl << std::flush;
+    m_parentMap.erase(dataName);
+    return;
+  }
+  
+  AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
+  if (!parentInfo) {
+    std::cout << "  [SubInterest] No strategy info found for parent PIT entry" << std::endl << std::flush;
+    m_parentMap.erase(dataName);
+    return;
+  }
+  
+  std::cout << "  [SubInterest] Processing Data for parent Interest " << parentPit->getName().toUri() << std::endl << std::flush;
+  
+  // Parse the content of the Data to extract the numeric value
+  uint64_t value = ns3::ndn::AggregateUtils::extractValueFromContent(data);
+  
+  // Determine which IDs this data covers (from its name components)
+  std::set<int> dataIds = ns3::ndn::AggregateUtils::parseNumbersFromName(dataName);
+  
+  // Update parent's partial sum and mark these IDs as fulfilled
+  parentInfo->partialSum += value;
+  for (int fulfilledId : dataIds) {
+    parentInfo->pendingIds.erase(fulfilledId);
+    // If this was a single-ID data, cache it for future Interests
+    if (dataIds.size() == 1) {
+      m_cachedValues[fulfilledId] = value;  // store in local cache
+      std::cout << "  [Cache] Stored value " << value << " for single ID " << fulfilledId << std::endl << std::flush;
+    }
+  }
+  
+  std::cout << "    [Aggregation] Data " << dataName.toUri() << " contributes value " 
+            << value << " to parent Interest " << parentPit->getName().toUri() << std::endl;
+  std::cout << "    Remaining IDs for parent: { ";
+  for (int pid : parentInfo->pendingIds) std::cout << pid << " ";
+  std::cout << "}" << std::endl << std::flush;
+  
+  // If all components for the parent interest have arrived (pending set empty), produce the aggregated Data
+  if (parentInfo->pendingIds.empty()) {
+    std::cout << "  [SubInterest] All components received, creating final aggregated Data" << std::endl << std::flush;
+    uint64_t totalSum = parentInfo->partialSum;
+    Name parentName = parentPit->getName();
+    
+    auto aggData = ns3::ndn::AggregateUtils::createDataWithValue(parentName, totalSum);
+    
+    // SAFE APPROACH: Create temporary interest and PIT entry for sending
+    // Capture face information before potential PIT entry invalidation
+    std::vector<Face*> outFaces;
+    for (const auto& inRecord : parentPit->getInRecords()) {
+      outFaces.push_back(&inRecord.getFace());
+    }
+    
+    if (outFaces.empty()) {
+      std::cout << "  [WARNING] Parent PIT entry has no InRecords - cannot send data" << std::endl;
+    } else {
+      // Process each face with a robust approach
+      for (Face* outFace : outFaces) {
+        try {
+          // Create a temporary interest with the same name as the parent
+          Interest tempInterest(parentName);
+          auto tempPitEntry = m_forwarder.getPit().insert(tempInterest).first;
+          
+          // Add the face as an in-record for our temporary PIT entry
+          tempPitEntry->insertOrUpdateInRecord(*outFace, tempInterest);
+          
+          // Now send data using this temporary PIT entry
+          this->sendData(*aggData, *outFace, tempPitEntry);
+          
+          std::cout << "<< Generated aggregate Data " << parentName.toUri() 
+                   << " with sum = " << totalSum 
+                   << " to face " << outFace->getId() 
+                   << " (via safe temp PIT entry)" << std::endl << std::flush;
+        }
+        catch (const std::exception& e) {
+          std::cout << "  [ERROR] Failed to send data: " << e.what() << std::endl;
+        }
+      }
+    }
+    
+    // Process any piggybacked interests with the same safe approach
+    if (!parentInfo->dependentInterests.empty()) {
+      std::cout << "  [SubInterest] Satisfying " << parentInfo->dependentInterests.size() 
+                << " piggybacked child interests" << std::endl << std::flush;
+                
+      for (auto& weakChildPit : parentInfo->dependentInterests) {
+        auto childPit = weakChildPit.lock();
+        if (!childPit) continue;
+        
+        // Compute the subset sum for the child (it might be different from totalSum if parent had extra IDs)
+        AggregatePitInfo* childInfo = childPit->getStrategyInfo<AggregatePitInfo>();
+        if (!childInfo) continue;
+        
+        // Sum up values for child's needed IDs from our cached values (all should be available now)
+        uint64_t childSum = 0;
+        for (int cid : childInfo->neededIds) {
+          if (m_cachedValues.find(cid) != m_cachedValues.end()) {
+            childSum += m_cachedValues[cid];
+          }
+        }
+        
+        // Capture child's faces before potential PIT invalidation
+        std::vector<Face*> childFaces;
+        for (const auto& inRecord : childPit->getInRecords()) {
+          childFaces.push_back(&inRecord.getFace());
+        }
+        
+        if (childFaces.empty()) {
+          std::cout << "  [WARNING] Child PIT entry has no InRecords - cannot send data" << std::endl;
+          continue;
+        }
+        
+        // Send Data to satisfy the child interest with safe approach
+        Name childName = childPit->getName();
+        auto childData = ns3::ndn::AggregateUtils::createDataWithValue(childName, childSum);
+        
+        // Send to all child's in-faces using temp PIT entries
+        for (Face* outFace : childFaces) {
+          try {
+            // Create a temporary interest with the same name as the child
+            Interest tempInterest(childName);
+            auto tempPitEntry = m_forwarder.getPit().insert(tempInterest).first;
+            
+            // Add the face as an in-record for our temporary PIT entry
+            tempPitEntry->insertOrUpdateInRecord(*outFace, tempInterest);
+            
+            // Now send data using this temporary PIT entry
+            this->sendData(*childData, *outFace, tempPitEntry);
+            
+            std::cout << "<< Satisfied piggybacked Interest " << childName.toUri() 
+                      << " with sum = " << childSum 
+                      << " to face " << outFace->getId()
+                      << " (via safe temp PIT entry)" << std::endl;
+          }
+          catch (const std::exception& e) {
+            std::cout << "  [ERROR] Failed to send piggybacked data: " << e.what() << std::endl;
+          }
+        }
+      }
+    }
+  }
+  
+  // Remove the mapping as this sub-interest's data has been processed
+  m_parentMap.erase(dataName);
+}
+
+void 
+AggregateStrategy::processWaitingInterestData(const Data& data, const Name& dataName, 
+                                           const FaceEndpoint& ingress,
+                                           const shared_ptr<pit::Entry>& pitEntry)
+{
+  auto waitIt = m_waitingInterests.find(dataName);
+  if (waitIt == m_waitingInterests.end()) {
+    return; // No waiting interests
+  }
+  
+  std::cout << "  [WaitingInterest] Found " << waitIt->second.size() 
+            << " interests waiting for Data " << dataName.toUri() << std::endl << std::flush;
+            
+  // Extract value from data
+  uint64_t value = ns3::ndn::AggregateUtils::extractValueFromContent(data);
+  
+  // Extract IDs covered by this data
+  std::set<int> dataIds = ns3::ndn::AggregateUtils::parseNumbersFromName(dataName);
+  
+  // Process each waiting interest IMMEDIATELY (not storing for later)
+  for (auto& weakPit : waitIt->second) {
+    auto waitingPit = weakPit.lock();
+    if (!waitingPit) continue;
+    
+    AggregatePitInfo* waitingInfo = waitingPit->getStrategyInfo<AggregatePitInfo>();
+    if (!waitingInfo) continue;
+    
+    // Update waiting interest's state with new data
+    waitingInfo->partialSum += value;
+    for (int gotId : dataIds) {
+      waitingInfo->pendingIds.erase(gotId);
+      
+      // CRITICAL FIX: Also remove this ID from the waitingFor map if present
+      if (waitingInfo->waitInfo) {
+        // Check if this exact data name was what we were waiting for
+        auto it = waitingInfo->waitInfo->waitingFor.begin();
+        while (it != waitingInfo->waitInfo->waitingFor.end()) {
+          if (it->second == dataName) {
+            std::cout << "    [Tracking] Removed ID " << it->first 
+                      << " from waiting list (data has arrived)" << std::endl;
+            it = waitingInfo->waitInfo->waitingFor.erase(it);
+          } else {
+            ++it;
+          }
+        }
+      }
+    }
+    
+    std::cout << "    [Piggyback] Data " << dataName.toUri() << " received for waiting Interest " 
+              << waitingPit->getName().toUri() << std::endl;
+    
+    // Check if waiting interest is REALLY ready - log and debug it!
+    std::cout << "    [Debug] Waiting interest has " << waitingInfo->pendingIds.size() 
+              << " remaining IDs: { ";
+    for (int id : waitingInfo->pendingIds) std::cout << id << " ";
+    std::cout << "}" << std::endl << std::flush;
+    
+    // If that waiting interest now has no pending IDs left, check if we have all needed data
+    if (waitingInfo->pendingIds.empty()) {
+      // Check if we're still waiting for data from other interests
+      bool stillWaitingForData = false;
+      
+      if (waitingInfo->waitInfo) {
+        // Print waiting IDs for debugging
+        std::cout << "  [WaitingMap] Interest is waiting for " 
+                  << waitingInfo->waitInfo->waitingFor.size() << " IDs from other interests: { ";
+        for (const auto& pair : waitingInfo->waitInfo->waitingFor) {
+          std::cout << pair.first << " (from " << pair.second.toUri() << ") ";
+          stillWaitingForData = true;
+        }
+        std::cout << "}" << std::endl << std::flush;
+      }
+      
+      if (stillWaitingForData) {
+        std::cout << "  [WaitingInterest] Interest has empty pendingIds but is still waiting for data from other interests" 
+                  << std::endl << std::flush;
+        continue;
+      }
+      
+      // Only proceed if we have all data (no pendingIds and no waitingFor entries)
+      std::cout << "  [WaitingInterest] All components received for waiting interest, creating final Data" 
+                << std::endl << std::flush;
+      
+      // ... rest of the existing code to create and send data ...
+    }
+    else {
+      std::cout << "  [WaitingInterest] Interest still waiting for " << waitingInfo->pendingIds.size() 
+                << " more IDs" << std::endl << std::flush;
+    }
+  }
+  
+  // Remove this entry from waiting list after processing all interests
+  m_waitingInterests.erase(waitIt);
+}
+
+void
+AggregateStrategy::processDirectData(const Data& data, const Name& dataName, 
+                                   const FaceEndpoint& ingress,
+                                   const shared_ptr<pit::Entry>& pitEntry)
+{
+  // Only process if this is not a sub-interest response
+  if (m_parentMap.find(dataName) != m_parentMap.end()) {
+    return;
+  }
+  
+  std::cout << "  [DirectData] Processing regular Data packet (not sub-interest)" << std::endl << std::flush;
+  
+  // If dataName is atomic, cache its value (form "/aggregate/<id>")
+  if (dataName.size() == 2) {
+    std::cout << "  [DirectData] Processing atomic data for single ID" << std::endl << std::flush;
+    
+    try {
+      int id = std::stoi(dataName.get(1).toUri());
+      uint64_t val = ns3::ndn::AggregateUtils::extractValueFromContent(data);
+      
+      // Store in cache
+      m_cachedValues[id] = val;
+      std::cout << "  [CacheStore] Cached value for ID " << id << " = " << val << std::endl << std::flush;
+    } 
+    catch (...) { 
+      std::cout << "  [DirectData] Failed to parse ID as integer" << std::endl << std::flush;
+    }
+  }
 }
 
 } // namespace fw

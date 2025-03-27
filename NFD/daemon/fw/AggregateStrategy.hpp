@@ -12,6 +12,7 @@
 #include <vector>
 #include <stdint.h>
 #include <iostream>
+#include <unordered_map>
 
 namespace nfd {
 namespace fw {
@@ -32,6 +33,10 @@ public:
   virtual void
   afterReceiveData(const ndn::Data& data, const nfd::FaceEndpoint& ingress,
                   const std::shared_ptr<nfd::pit::Entry>& pitEntry) override;
+
+  void
+  processDataForAggregation(const Data& data, const FaceEndpoint& ingress,
+                            const shared_ptr<pit::Entry>& pitEntry);
 
   void 
   beforeExpirePendingInterest(const shared_ptr<pit::Entry>& pitEntry);
@@ -64,6 +69,30 @@ private:
   // Add this method to register for PIT expiration events
   void registerPitExpirationCallback();
 
+  // New method to process sub-interest data
+  void
+  processSubInterestData(const Data& data, const Name& dataName, 
+                        const FaceEndpoint& ingress,
+                        const shared_ptr<pit::Entry>& pitEntry);
+                        
+  // New method to process waiting interests
+  void
+  processWaitingInterestData(const Data& data, const Name& dataName, 
+                           const FaceEndpoint& ingress,
+                           const shared_ptr<pit::Entry>& pitEntry);
+                           
+  // New method to process direct data
+  void
+  processDirectData(const Data& data, const Name& dataName, 
+                   const FaceEndpoint& ingress,
+                   const shared_ptr<pit::Entry>& pitEntry);
+
+  // Define WaitInfo structure to track waiting dependencies
+  struct WaitInfo {
+    // Maps ID -> Name of Interest that will provide this ID's data
+    std::unordered_map<int, ndn::Name> waitingFor;
+  };  
+
   // Structure to hold strategy-specific info for each PIT entry (interest)
   struct AggregatePitInfo : public StrategyInfo {
     // (BUG FIX) Add this static method that returns a unique ID for this strategy info type
@@ -71,11 +100,12 @@ private:
     getTypeId() {
       return 1000; // Choose a unique ID (typically 1000+ for custom strategies)
     }
-
+  
     std::set<int>    neededIds;        // full set of IDs this Interest is requesting
     std::set<int>    pendingIds;       // IDs still pending (not yet received or satisfied)
     uint64_t         partialSum;       // sum of all received components so far
     std::vector<std::weak_ptr<pit::Entry>> dependentInterests; // piggybacked interests waiting on this one
+    std::shared_ptr<WaitInfo> waitInfo;  // For tracking where data for each ID will come from
   };
 
   // Add this after the AggregatePitInfo struct definition (around line 50)
@@ -94,24 +124,6 @@ private:
 
   // Helper to retrieve (and create if not exists) the AggregatePitInfo for a PIT entry
   AggregatePitInfo* getAggregatePitInfo(const std::shared_ptr<pit::Entry>& pitEntry);
-
-  /**
-   * @brief Special handling for consumer-producer nodes receiving interests
-   *
-   * Handles dual role: responds to interests for own data, forwards other interests to rack aggregator
-   */
-  void 
-  handleProducerInterest(const Interest& interest, const FaceEndpoint& ingress,
-                         const shared_ptr<pit::Entry>& pitEntry);
-                         
-  /**
-   * @brief Special handling for consumer-producer nodes receiving data
-   *
-   * Handles dual role: processes incoming aggregated results, ensures proper data forwarding
-   */
-  void
-  handleProducerData(const Data& data, const FaceEndpoint& ingress,
-                     const shared_ptr<pit::Entry>& pitEntry);
 
   // ** Data structures for coordinating sub-Interests and piggybacking **
 

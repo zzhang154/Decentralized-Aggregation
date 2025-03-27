@@ -1,7 +1,7 @@
 Waf: Entering directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Waf: Leaving directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Build commands will be stored in build/compile_commands.json
-'build' finished successfully (1.049s)
+'build' finished successfully (1.443s)
 GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1
 Copyright (C) 2022 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
@@ -230,7 +230,7 @@ Strategy will use virtual method overrides.
 Installed consumer app on node 3
   Consumer will start at 1.0s
 === CONFIGURING SIMULATION ===
-[Detaching after vfork from child process 1015350]
+[Detaching after vfork from child process 1067255]
 L3RateTracer installed, output to results/rate-trace.txt
 Tracers installed. Simulation will run for 5.0 seconds
 Time: 0s
@@ -652,6 +652,7 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 2
 >> Received Interest /aggregate/%01/%03/seq=0 from face 258 requesting IDs = { 1 3 }
   [Subset] Interest /aggregate/%03/seq=0 is a subset of new Interest /aggregate/%01/%03/seq=0
+  [Tracking] ID 3 will come from /aggregate/%03/seq=0
 If some IDs are still pending
 DEBUG: FIB table has 5 entries
 DEBUG: Processing 1 pending IDs: [ 1 ]
@@ -686,7 +687,9 @@ DEBUG: Current FIB entries:
     * Face: 258 Cost: 2
 >> Received Interest /aggregate/%01/%02/seq=0 from face 259 requesting IDs = { 1 2 }
   [Subset] Interest /aggregate/%02/seq=0 is a subset of new Interest /aggregate/%01/%02/seq=0
+  [Tracking] ID 2 will come from /aggregate/%02/seq=0
   [Subset] Interest /aggregate/%01/seq=0 is a subset of new Interest /aggregate/%01/%02/seq=0
+  [Tracking] ID 1 will come from /aggregate/%01/seq=0
   (No new sub-interests forwarded for /aggregate/%01/%02/seq=0)
 MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=43
 
@@ -897,6 +900,9 @@ MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 !! RAW DATA RECEIVED BY FORWARDER: R2 received data /aggregate/%02/seq=0 from face 257
   PIT ENTRY BEFORE SATISFACTION: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
   InFaces: 258
+<< [beforeSatisfyInterest] Processing data: /aggregate/%02/seq=0 from face 257
+  [Forward] Data /aggregate/%02/seq=0 will be forwarded downstream by forwarder
+  [DirectData] Processing regular Data packet (not sub-interest)
 MAC TX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! R2 RECEIVED DATA ON FACE 257: /aggregate/%02/seq=0
@@ -912,6 +918,9 @@ MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
 !! RAW DATA RECEIVED BY FORWARDER: R3 received data /aggregate/%03/seq=0 from face 257
   PIT ENTRY BEFORE SATISFACTION: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
   InFaces: 258
+<< [beforeSatisfyInterest] Processing data: /aggregate/%03/seq=0 from face 257
+  [Forward] Data /aggregate/%03/seq=0 will be forwarded downstream by forwarder
+  [DirectData] Processing regular Data packet (not sub-interest)
 MAC TX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! R3 RECEIVED DATA ON FACE 257: /aggregate/%03/seq=0
@@ -927,6 +936,9 @@ MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
 !! RAW DATA RECEIVED BY FORWARDER: R1 received data /aggregate/%01/seq=0 from face 257
   PIT ENTRY BEFORE SATISFACTION: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
   InFaces: 258
+<< [beforeSatisfyInterest] Processing data: /aggregate/%01/seq=0 from face 257
+  [Forward] Data /aggregate/%01/seq=0 will be forwarded downstream by forwarder
+  [DirectData] Processing regular Data packet (not sub-interest)
 MAC TX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! R1 RECEIVED DATA ON FACE 257: /aggregate/%01/seq=0
@@ -942,6 +954,20 @@ MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
 !! RAW DATA RECEIVED BY FORWARDER: C1 received data /aggregate/%02/seq=0 from face 258
   PIT ENTRY BEFORE SATISFACTION: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
   InFaces: 257
+<< [beforeSatisfyInterest] Processing data: /aggregate/%02/seq=0 from face 258
+  [Consume] Data /aggregate/%02/seq=0 is being handled by the strategy - suppressing forwarding
+  [SubInterest] Found matching parent for Data /aggregate/%02/seq=0
+  [SubInterest] Processing Data for parent Interest /aggregate/%02/%03/seq=0
+  [Cache] Stored value 2 for single ID 2
+    [Aggregation] Data /aggregate/%02/seq=0 contributes value 2 to parent Interest /aggregate/%02/%03/seq=0
+    Remaining IDs for parent: { 3 }
+  [WaitingInterest] Found 1 interests waiting for Data /aggregate/%02/seq=0
+    [Tracking] Removed ID 2 from waiting list (data has arrived)
+    [Piggyback] Data /aggregate/%02/seq=0 received for waiting Interest /aggregate/%01/%02/seq=0
+    [Debug] Waiting interest has 0 remaining IDs: { }
+  [WaitingMap] Interest is waiting for 1 IDs from other interests: { 1 (from /aggregate/%01/seq=0) }
+  [WaitingInterest] Interest has empty pendingIds but is still waiting for data from other interests
+  [DirectData] Processing regular Data packet (not sub-interest)
 MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! C1 RECEIVED DATA ON FACE 258: /aggregate/%02/seq=0
@@ -961,6 +987,21 @@ MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
 !! RAW DATA RECEIVED BY FORWARDER: C1 received data /aggregate/%03/seq=0 from face 259
   PIT ENTRY BEFORE SATISFACTION: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
   InFaces: 257
+<< [beforeSatisfyInterest] Processing data: /aggregate/%03/seq=0 from face 259
+  [Consume] Data /aggregate/%03/seq=0 is being handled by the strategy - suppressing forwarding
+  [SubInterest] Found matching parent for Data /aggregate/%03/seq=0
+  [SubInterest] Processing Data for parent Interest /aggregate/%02/%03/seq=0
+  [Cache] Stored value 3 for single ID 3
+    [Aggregation] Data /aggregate/%03/seq=0 contributes value 3 to parent Interest /aggregate/%02/%03/seq=0
+    Remaining IDs for parent: { }
+  [SubInterest] All components received, creating final aggregated Data
+  [ERROR] Failed to send data: bad_weak_ptr
+  [WaitingInterest] Found 1 interests waiting for Data /aggregate/%03/seq=0
+    [Tracking] Removed ID 3 from waiting list (data has arrived)
+    [Piggyback] Data /aggregate/%03/seq=0 received for waiting Interest /aggregate/%01/%03/seq=0
+    [Debug] Waiting interest has 1 remaining IDs: { 1 }
+  [WaitingInterest] Interest still waiting for 1 more IDs
+  [DirectData] Processing regular Data packet (not sub-interest)
 MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! C1 RECEIVED DATA ON FACE 259: /aggregate/%03/seq=0
@@ -980,6 +1021,22 @@ MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=362
 !! RAW DATA RECEIVED BY FORWARDER: C1 received data /aggregate/%01/seq=0 from face 257
   PIT ENTRY BEFORE SATISFACTION: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
   InFaces: 258
+<< [beforeSatisfyInterest] Processing data: /aggregate/%01/seq=0 from face 257
+  [Consume] Data /aggregate/%01/seq=0 is being handled by the strategy - suppressing forwarding
+  [SubInterest] Found matching parent for Data /aggregate/%01/seq=0
+  [SubInterest] Processing Data for parent Interest /aggregate/%01/%03/seq=0
+  [Cache] Stored value 1 for single ID 1
+    [Aggregation] Data /aggregate/%01/seq=0 contributes value 1 to parent Interest /aggregate/%01/%03/seq=0
+    Remaining IDs for parent: { }
+  [SubInterest] All components received, creating final aggregated Data
+  [ERROR] Failed to send data: bad_weak_ptr
+  [WaitingInterest] Found 1 interests waiting for Data /aggregate/%01/seq=0
+    [Tracking] Removed ID 1 from waiting list (data has arrived)
+    [Piggyback] Data /aggregate/%01/seq=0 received for waiting Interest /aggregate/%01/%02/seq=0
+    [Debug] Waiting interest has 0 remaining IDs: { }
+  [WaitingMap] Interest is waiting for 0 IDs from other interests: { }
+  [WaitingInterest] All components received for waiting interest, creating final Data
+  [DirectData] Processing regular Data packet (not sub-interest)
 MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! C1 RECEIVED DATA ON FACE 257: /aggregate/%01/seq=0
@@ -1022,6 +1079,6 @@ MAC RX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
     **** NO MATCHING PIT ENTRY **** for data: /aggregate/%03/seq=0
     This data will be dropped by the forwarder
 MAC RX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
-[Inferior 1 (process 1014927) exited normally]
+[Inferior 1 (process 1066832) exited normally]
 [Program stopped: printing stack trace]Error while running hook_stop:
 No stack.
