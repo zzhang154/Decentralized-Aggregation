@@ -14,6 +14,8 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "ns3/ndnSIM/utils/ndn-aggregate-utils.hpp"
+
 namespace nfd {
 namespace fw {
 
@@ -52,20 +54,10 @@ private:
   Forwarder& m_forwarder;  // <-- The KEY fix
   uint32_t m_nodeId;
   
-  // Node role mapping
-  enum class NodeRole {
-    PRODUCER,    // P1, P2, etc.
-    RACK_AGG,    // R1, R2, etc. 
-    CORE_AGG,    // C1, C2, etc.
-    UNKNOWN
-  };
   
-  NodeRole m_nodeRole;
+  ns3::ndn::AggregateUtils::NodeRole m_nodeRole;
   int m_logicalId;  // 1-based ID within role group
   
-  void determineNodeRole();
-  std::string getNodeRoleString() const;
-
   // Add this method to register for PIT expiration events
   void registerPitExpirationCallback();
 
@@ -119,11 +111,83 @@ private:
     shared_ptr<pit::Entry> parentEntry;
   };
 
-  // Helper to parse an aggregate Interest Name into a set of integer IDs
-  std::set<int> parseRequestedIds(const Interest& interest) const;
-
   // Helper to retrieve (and create if not exists) the AggregatePitInfo for a PIT entry
   AggregatePitInfo* getAggregatePitInfo(const std::shared_ptr<pit::Entry>& pitEntry);
+
+  // Debug helper functions for "afterReceiveInterest"
+  void logDebugInfo(const Interest& interest, const FaceEndpoint& ingress);
+  bool checkInterestAggregation(const Interest& interest, const FaceEndpoint& ingress, 
+                              const shared_ptr<pit::Entry>& pitEntry);
+  void forwardRegularInterest(const Interest& interest, const FaceEndpoint& ingress,
+                            const shared_ptr<pit::Entry>& pitEntry);
+  bool processContentStoreHits(const Interest& interest, const FaceEndpoint& ingress,
+                              const shared_ptr<pit::Entry>& pitEntry, 
+                              AggregatePitInfo* pitInfo);
+  void checkSubsetSupersetRelationships(const Interest& interest, 
+                                      const shared_ptr<pit::Entry>& pitEntry,
+                                      AggregatePitInfo* pitInfo,
+                                      const std::set<int>& requestedIds);
+  void splitAndForwardInterests(const Interest& interest, const FaceEndpoint& ingress,
+                              const shared_ptr<pit::Entry>& pitEntry,
+                              AggregatePitInfo* pitInfo);
+  void handleSingleFaceForwarding(const Interest& interest, const FaceEndpoint& ingress,
+                                const shared_ptr<pit::Entry>& pitEntry,
+                                AggregatePitInfo* pitInfo,
+                                const std::map<Face*, std::vector<int>>& faceToIdsMap);
+  void forwardSplitInterests(const Interest& interest, const FaceEndpoint& ingress,
+                          const shared_ptr<pit::Entry>& pitEntry,
+                          const std::map<Face*, std::vector<int>>& faceToIdsMap);
+  void printPitDebugInfo(const Pit& pit);
+
+  // Debug helper functions for "processSubInterestData"
+  /**
+   * @brief Find and validate the parent PIT entry for a sub-interest response
+   * @param dataName The name of the data packet received
+   * @return Shared pointer to parent PIT entry and its info, or nullptrs if invalid
+   */
+  std::pair<std::shared_ptr<pit::Entry>, AggregatePitInfo*> 
+  findParentPitEntry(const Name& dataName);
+
+  /**
+   * @brief Update parent's partial sum and pending IDs with sub-interest data
+   * @param data The data packet received
+   * @param dataName The name of the data packet
+   * @param parentInfo The parent PIT entry's strategy info
+   * @return Total sum value from data
+   */
+  uint64_t updateParentWithSubInterestData(const Data& data, const Name& dataName, 
+                                        AggregatePitInfo* parentInfo);
+
+  /**
+   * @brief Send aggregated data to parent's faces when all components are received
+   * @param parentPit The parent PIT entry
+   * @param parentInfo The parent's strategy info
+   */
+  void sendAggregatedDataToParentFaces(std::shared_ptr<pit::Entry> parentPit,
+                                      AggregatePitInfo* parentInfo);
+
+  /**
+   * @brief Process and satisfy any piggybacked interests
+   * @param parentInfo The parent PIT entry's strategy info
+   */
+  void satisfyPiggybackedInterests(AggregatePitInfo* parentInfo);
+
+  /**
+   * @brief Extract faces from a PIT entry for sending data
+   * @param pitEntry The PIT entry to extract faces from
+   * @return Vector of faces extracted from the PIT entry
+   */
+  std::vector<Face*> extractFacesFromPitEntry(const std::shared_ptr<pit::Entry>& pitEntry);
+
+  /**
+   * @brief Send data directly to a face, bypassing PIT
+   * @param data The data packet to send
+   * @param outFace The face to send the data to
+   * @param dataName The name of the data (for logging)
+   * @param value The value contained in the data (for logging)
+   */
+  void sendDataDirectly(const std::shared_ptr<::ndn::Data>& data, Face* outFace, 
+                      const Name& dataName, uint64_t value);
 
   // ** Data structures for coordinating sub-Interests and piggybacking **
 

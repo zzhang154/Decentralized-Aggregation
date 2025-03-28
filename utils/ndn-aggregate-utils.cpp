@@ -5,11 +5,13 @@
 #include <ndn-cxx/encoding/block.hpp>
 #include <endian.h>
 #include "ns3/ndnSIM/helper/ndn-stack-helper.hpp"
+#include <iomanip>
 
 namespace ns3 {
 namespace ndn {
 
-// Add these implementations for utility of "src/ndnSIM/examples/aggregate-sum-simulation.cpp":
+// Implement existing functions (getNodeCount, determineNodeRole, getNodeRoleString)
+// ...
 
 uint32_t
 AggregateUtils::getNodeCount()
@@ -76,8 +78,7 @@ AggregateUtils::getNodeRoleString(NodeRole role, uint32_t nodeIndex)
   }
 }
 
-// Add these implementations for utility of "src/ndnSIM/NFD/daemon/fw/AggregateStrategy.cpp":
-
+// Implement the NDN specific utility functions
 uint64_t
 AggregateUtils::extractValueFromContent(const ::ndn::Data& data)
 {
@@ -181,6 +182,61 @@ AggregateUtils::signData(std::shared_ptr<::ndn::Data> data)
 {
   // Use the keychain from StackHelper to sign the data
   ns3::ndn::StackHelper::getKeyChain().sign(*data);
+}
+
+// New utility functions - without NFD dependencies
+std::shared_ptr<::ndn::Interest>
+AggregateUtils::createSplitInterest(const ::ndn::Name& subInterestName,
+                                  ::ndn::time::milliseconds lifetime)
+{
+  auto interest = std::make_shared<::ndn::Interest>(subInterestName);
+  interest->setCanBePrefix(false);
+  interest->setInterestLifetime(lifetime);
+  return interest;
+}
+
+::ndn::Name::Component
+AggregateUtils::extractSequenceComponent(const ::ndn::Name& name)
+{
+  for (size_t i = 0; i < name.size(); i++) {
+    if (name[i].toUri().find("seq=") != std::string::npos) {
+      return name[i];
+    }
+  }
+  return ::ndn::Name::Component();
+}
+
+bool
+AggregateUtils::doSequenceComponentsMatch(const ::ndn::Name& name1, const ::ndn::Name& name2)
+{
+  ::ndn::Name::Component seq1 = extractSequenceComponent(name1);
+  ::ndn::Name::Component seq2 = extractSequenceComponent(name2);
+  
+  return (seq1 == seq2) || (seq1.empty() && seq2.empty());
+}
+
+bool
+AggregateUtils::isSubset(const std::set<int>& potentialSubset, const std::set<int>& potentialSuperset)
+{
+  return std::includes(potentialSuperset.begin(), potentialSuperset.end(),
+                     potentialSubset.begin(), potentialSubset.end());
+}
+
+bool
+AggregateUtils::isSuperset(const std::set<int>& potentialSuperset, const std::set<int>& potentialSubset)
+{
+  return isSubset(potentialSubset, potentialSuperset);
+}
+
+void
+AggregateUtils::logInterestInfo(const ::ndn::Interest& interest, uint32_t faceId, 
+                              const std::string& nodeInfo)
+{
+  std::cout << '\n' << nodeInfo
+          << " - STRATEGY received Interest: " << interest.getName() 
+          << " via " << faceId
+          << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
+          << "s" << std::endl << std::flush;
 }
 
 } // namespace ndn

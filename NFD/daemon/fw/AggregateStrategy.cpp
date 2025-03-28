@@ -43,17 +43,17 @@ NFD_REGISTER_STRATEGY(AggregateStrategy);
 
 AggregateStrategy::AggregateStrategy(Forwarder& forwarder, const Name& name)
 : Strategy(forwarder)
-  , m_forwarder(forwarder) // <-- The KEY fix: store forwarder reference
+  , m_forwarder(forwarder)
   , m_nodeId(ns3::NodeContainer::GetGlobal().Get(ns3::Simulator::GetContext())->GetId() + 1)
-  , m_nodeRole(NodeRole::UNKNOWN)
-  , m_logicalId(0)
 {
   // Set the instance name explicitly
   this->setInstanceName(name);
 
   // Determine node role and logical ID for logging
-  determineNodeRole();
-  std::cout << getNodeRoleString() << " initialized AggregateStrategy" << std::endl;
+  uint32_t nodeIndex = m_nodeId - 1;
+  m_nodeRole = ns3::ndn::AggregateUtils::determineNodeRole(nodeIndex);
+  std::cout << ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, nodeIndex) 
+            << " initialized AggregateStrategy" << std::endl;
 
   // Register for PIT expiration
   registerPitExpirationCallback();
@@ -63,97 +63,6 @@ AggregateStrategy::AggregateStrategy(Forwarder& forwarder, const Name& name)
 }
 
 // Add these new methods:
-void 
-AggregateStrategy::determineNodeRole() 
-{
-  // Get total nodes in simulation
-  uint32_t totalNodes = ns3::NodeContainer::GetGlobal().GetN();
-  
-  // Get nodeCount from GlobalValue system
-  uint32_t nodeCount = 0;
-  ns3::UintegerValue val;
-  bool exists = false;
-  
-  // Use GetValueByNameFailSafe instead - this returns a bool
-  exists = ns3::GlobalValue::GetValueByNameFailSafe("NodeCount", val);
-  
-  if (exists) {
-    nodeCount = val.Get();
-    std::cout << "Strategy found nodeCount=" << nodeCount << " from GlobalValue" << std::endl;
-  } else {
-    // Fallback if not found
-    nodeCount = std::max(2u, totalNodes / 3);
-    std::cout << "Strategy using fallback nodeCount=" << nodeCount << std::endl;
-  }
-  
-  // Calculate topology elements - match exactly with aggregate-sum-simulation.cpp
-  uint32_t numRackAggregators = nodeCount;  // One rack aggregator per producer
-  uint32_t numCoreAggregators = (nodeCount > 1) ? std::max(1u, nodeCount / 4) : 0;
-  
-  // Get 0-based node index (m_nodeId is already correctly set in constructor)
-  uint32_t nodeIndex = m_nodeId - 1;
-  
-  // Now determine role based on index ranges from the topology creation
-  if (nodeIndex < nodeCount) {
-    // First nodeCount nodes are producers (0 to nodeCount-1)
-    m_nodeRole = NodeRole::PRODUCER;
-    m_logicalId = nodeIndex + 1;  // 1-indexed for display
-  }
-  else if (nodeIndex < nodeCount + numRackAggregators) {
-    // Next numRackAggregators nodes are rack aggregators
-    m_nodeRole = NodeRole::RACK_AGG;
-    m_logicalId = nodeIndex - nodeCount + 1;  // 1-indexed for display
-  }
-  else {
-    // Remaining nodes are core aggregators
-    m_nodeRole = NodeRole::CORE_AGG;
-    m_logicalId = nodeIndex - (nodeCount + numRackAggregators) + 1;  // 1-indexed for display
-  }
-}
-
-std::string 
-AggregateStrategy::getNodeRoleString() const 
-{
-  switch (m_nodeRole) {
-    case NodeRole::PRODUCER:
-      return "P" + std::to_string(m_logicalId);
-    case NodeRole::RACK_AGG:
-      return "R" + std::to_string(m_logicalId);
-    case NodeRole::CORE_AGG:
-      return "C" + std::to_string(m_logicalId);
-    default:
-      return "NODE " + std::to_string(m_nodeId);
-  }
-}
-
-// Helper: parse interest name of form /aggregate/<id1>/<id2>/... into a set of integers
-std::set<int> 
-AggregateStrategy::parseRequestedIds(const Interest& interest) const {
-  std::set<int> idSet;
-  const Name& name = interest.getName();
-  
-  // Skip the first component ("aggregate") and skip sequence number if present
-  for (size_t i = 1; i < name.size(); ++i) {
-    // Skip sequence number components (they have a specific format)
-    if (name[i].isSequenceNumber() || name[i].toUri().find("seq=") != std::string::npos) {
-      continue;
-    }
-    
-    try {
-      int id = 0;
-      if (name[i].isNumber()) {
-        id = name[i].toNumber();
-        // Only include IDs that make sense (skip 0)
-        if (id > 0) {
-          idSet.insert(id);
-        }
-      }
-    } catch (const std::exception& e) {
-      // Skip invalid components
-    }
-  }
-  return idSet;
-}
 
 // Helper: get or create AggregatePitInfo for a pit entry
 AggregateStrategy::AggregatePitInfo* 
@@ -184,128 +93,28 @@ void
 AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
                                         const shared_ptr<pit::Entry>& pitEntry) 
 {
-  std::cout << '\n' << getNodeRoleString()
-          << " - STRATEGY received Interest: " << interest.getName() 
-          << " via " << ingress.face.getId() 
-          << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
-          << "s" << std::endl << std::flush;
+  // 1. Log debug information
+  logDebugInfo(interest, ingress);
 
-  // Dump the current PIT entries for debugging:
-  std::cout << "Current PIT entries before forwarding Interest:" << std::endl;
-  Pit &pit = m_forwarder.getPit();
-  for (auto it = pit.begin(); it != pit.end(); ++it) {
-      // Do not try to copy *it; instead, bind it to a const reference.
-      const nfd::pit::Entry &entry = *it;
-      std::cout << "  PIT entry: " << entry.getName() 
-                << " (InFaces=" << entry.getInRecords().size() 
-                << ", OutFaces=" << entry.getOutRecords().size() << ")" << std::endl;
-  }
-
-  // Get a reference to the FIB table first
-  Fib& fib = m_forwarder.getFib();
-
-  // Debug: Print FIB size and pending IDs
-  std::cout << "DEBUG: FIB table has " << std::distance(fib.begin(), fib.end()) << " entries" << std::endl << std::flush;
-
-  // Add this code to dump the complete FIB table content
-  std::cout << "DEBUG: Current FIB entries:" << std::endl;
-  for (const auto& fibEntry : fib) {
-    std::cout << "  - Prefix: " << fibEntry.getPrefix() << " (Nexthops: " << fibEntry.getNextHops().size() << ")" << std::endl;
-    for (const auto& nh : fibEntry.getNextHops()) {
-      std::cout << "    * Face: " << nh.getFace().getId() << " Cost: " << nh.getCost() << std::endl;
-    }
-  }
-
-  // COMBINED INTEREST AGGREGATION CHECK
-  // Check #1: Interest has already been forwarded (has OutFaces)
-  if (pitEntry->hasOutRecords()) {
-    bool isSameFaceDuplicate = false;
-    bool isDifferentFaceDuplicate = false;
-    
-    for (const auto& inRecord : pitEntry->getInRecords()) {
-      if (inRecord.getFace().getId() == ingress.face.getId()) {
-        // This exact same face already has an in-record
-        isSameFaceDuplicate = true;
-      } else {
-        // A different face has an in-record
-        isDifferentFaceDuplicate = true;
-      }
-    }
-    
-    if (isSameFaceDuplicate) {
-      std::cout << "  [Interest Aggregation] Duplicate interest from same face detected" << std::endl;
-      std::cout << "  [Interest Aggregation] Interest " << interest.getName() 
-                << " already forwarded - suppressing redundant forwarding" << std::endl;
-      return; // Exit without forwarding again - this is a duplicate from same face
-    }
-    
-    if (isDifferentFaceDuplicate) {
-      std::cout << "  [Interest Aggregation] Duplicate interest from different face detected" << std::endl;
-      std::cout << "  [Interest Aggregation] Interest " << interest.getName() 
-                << " aggregated (added face " << ingress.face.getId() 
-                << " to existing PIT entry)" << std::endl;
-      return; // Exit without forwarding again
-    }
-  }
-  
-  // Check #2: Another PIT entry exists with the same name and has been forwarded
-  for (auto it = pit.begin(); it != pit.end(); ++it) {
-    const nfd::pit::Entry &entry = *it;
-    
-    // Skip if it's the same entry we're currently processing
-    if (&entry == pitEntry.get()) {
-      continue;
-    }
-    
-    // If same name but different entry, we have a duplicate that should be aggregated
-    if (entry.getName() == interest.getName() && entry.hasOutRecords()) {
-      std::cout << "  [Interest Aggregation] Duplicate interest " << interest.getName() 
-                << " detected across different PIT entries" << std::endl;
-      std::cout << "  [Interest Aggregation] Original PIT entry with "
-                << entry.getInRecords().size() << " in-faces and "
-                << entry.getOutRecords().size() << " out-faces" << std::endl;
-      
-      // The system should merge these eventually, but in some NDN implementations
-      // we need to manually ensure both entries are linked
-      
-      // Don't forward this interest again - data will be returned to all faces
-      return;
-    }
+  // 2. Check for interest aggregation (early return if aggregated)
+  if (checkInterestAggregation(interest, ingress, pitEntry)) {
+    return;
   }
           
-  // Only operate on aggregate Interests (prefix "/aggregate")
-  // (StrategyChoice should ensure this strategy only sees those by configuration)
+  // 3. If not an aggregate Interest, use default behavior
   Name interestName = interest.getName();
   if (interestName.size() < 2 || interestName.get(0).toUri() != "aggregate") {
-    // Not an aggregate interest, use default behavior (fallback to BestRoute)
-    // Get the FIB entry
-    const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
-    
-    // Find a face to forward to (first available nexthop)
-    const fib::NextHopList& nexthops = fibEntry.getNextHops();
-    if (!nexthops.empty()) {
-      Face& outFace = nexthops.begin()->getFace();
-      std::cout << "[Strategy] Forwarding regular Interest " 
-              << interestName << " to face " << outFace.getId() << std::endl;
-      this->sendInterest(interest, outFace, pitEntry);
-
-      // CRITICAL FIX: Preserve the InRecord that NDN removes during forwarding
-      pitEntry->insertOrUpdateInRecord(ingress.face, interest);
-      std::cout << "  [PRESERVED] Restored InRecord for face " << ingress.face.getId() 
-                << " in PIT entry for " << interest.getName() << std::endl;
-    }
+    forwardRegularInterest(interest, ingress, pitEntry);
     return;
   }
 
-  // Parse the set of requested data source IDs from the Interest Name
-  std::set<int> requestedIds = parseRequestedIds(interest);
-
-  // Attach strategy-specific info to the PIT entry
+  // 4. Parse requested IDs and attach to PIT entry
+  std::set<int> requestedIds = ns3::ndn::AggregateUtils::parseNumbersFromName(interestName);
   AggregatePitInfo* pitInfo = getAggregatePitInfo(pitEntry);
-  pitInfo->neededIds   = requestedIds;
-  pitInfo->pendingIds  = requestedIds;
-  pitInfo->partialSum  = 0;
-  pitInfo->dependentInterests.clear(); // no piggyback dependents yet
+  pitInfo->neededIds = requestedIds;
+  pitInfo->pendingIds = requestedIds;
+  pitInfo->partialSum = 0;
+  pitInfo->dependentInterests.clear();
 
   std::cout << ">> Received Interest " << interestName.toUri()
             << " from face " << ingress.face.getId() 
@@ -313,378 +122,19 @@ AggregateStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
   for (int id : requestedIds) std::cout << id << " ";
   std::cout << "}" << std::endl << std::flush;
 
-  // ** 1. Check Content Store for cached Data that can satisfy or partially satisfy the Interest **
-
-  // If the entire aggregated result is already cached (exact name match), the forwarder 
-  // would normally handle it as a content store hit before calling strategy.
-  // Here, we also check our simple cache for individual data values to avoid redundant fetches:
-  for (auto it = pitInfo->pendingIds.begin(); it != pitInfo->pendingIds.end();) {
-    int id = *it;
-    // If cached value for this id exists, use it
-    if (m_cachedValues.find(id) != m_cachedValues.end()) {
-      uint64_t cachedValue = m_cachedValues[id];
-      pitInfo->partialSum += cachedValue; // add to partial sum
-      std::cout << "  [CacheHit] Value for ID " << id << " = " 
-                << cachedValue << " (from CS)" << std::endl << std::flush;
-      // Mark this ID as satisfied from cache (remove from pending)
-      it = pitInfo->pendingIds.erase(it);
-      continue;
-    }
-    ++it;
+  // 5. Check Content Store for cached values
+  if (processContentStoreHits(interest, ingress, pitEntry, pitInfo)) {
+    return; // Fully satisfied from cache
   }
 
-  // If after cache lookup, no pending IDs remain, we can satisfy the Interest immediately
-  if (pitInfo->pendingIds.empty()) {
-    // Create Data packet with the aggregated sum (since all components were cached)
-    uint64_t totalSum = pitInfo->partialSum;
-    auto data = std::make_shared<ndn::Data>(interestName);
-    // Set content to the computed sum (8 bytes, network order)
-    uint64_t sumNbo = htobe64(totalSum);  // convert to network byte order 64-bit
-    // With one of these alternatives:
-    // Option 1:
-    std::shared_ptr<ndn::Buffer> buffer = std::make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(&sumNbo), sizeof(sumNbo));
-    data->setContent(buffer);
-    data->setFreshnessPeriod(::ndn::time::milliseconds(1000)); // e.g., 1 second freshness
+  // 6. Check for subset/superset relationships with existing interests
+  checkSubsetSupersetRelationships(interest, pitEntry, pitInfo, requestedIds);
 
-    // Pass the incoming face as egress (using const_cast)
-    // WITH THIS CORRECT VERSION FOR INTEREST SUPPRESSION:
-    for (const auto& inRecord : pitEntry->getInRecords()) {
-        Face& outFace = inRecord.getFace();
-        this->sendData(*data, outFace, pitEntry);
-    }
-    std::cout << "<< Satisfied Interest " << interestName.toUri() 
-              << " from cache with sum = " << totalSum << std::endl << std::flush;
-    return;
-  }
+  // 7. Split and forward interests based on routing
+  splitAndForwardInterests(interest, ingress, pitEntry, pitInfo);
 
-  // ** 2. Check for Pending Interests that can be aggregated (superset or subset logic) **
-
-  // Iterate over all PIT entries with the same prefix/name (including the current one)
-  // (We use the Forwarder's PIT table to search existing entries)
-
-  Pit& pitTable = m_forwarder.getPit();  // (BUG FIX) obtains reference to the PIT
-  for (auto it = pitTable.begin(); it != pitTable.end(); ++it) {
-    // each iterator element is a pit::Iterator, so dereference (*) gives you a shared_ptr<pit::Entry>
-    // (BUG FIX) here, we must use a reference to avoid copying the shared_ptr.
-    const pit::Entry& entryRef = *it;
-
-    // Only consider other Interests in the aggregate namespace
-    Name existingName = entryRef.getName();
-    if (existingName.size() < 2 || existingName.get(0).toUri() != "aggregate")
-      continue;
-
-    // (BUG FIX) Compare pointer addresses to see if it's the same PIT entry
-    if (&entryRef == pitEntry.get()) {
-        continue; // skip the current interest itself
-    }
-
-    // Extract sequence components for comparison
-    Name::Component existingSeqComponent, newSeqComponent;
-    for (size_t i = 0; i < existingName.size(); i++) {
-      if (existingName[i].toUri().find("seq=") != std::string::npos) {
-        existingSeqComponent = existingName[i];
-        break;
-      }
-    }
-    for (size_t i = 0; i < interestName.size(); i++) {
-      if (interestName[i].toUri().find("seq=") != std::string::npos) {
-        newSeqComponent = interestName[i];
-        break;
-      }
-    }
-
-    // Only consider subset/superset if sequence numbers match
-    bool sequencesMatch = (existingSeqComponent == newSeqComponent) || 
-                          (existingSeqComponent.empty() && newSeqComponent.empty());
-                          
-    if (!sequencesMatch) {
-      continue; // Skip this entry if the sequence components don't match
-    }
-
-    // Get the set of IDs for the existing pending interest - with improved parsing
-    std::set<int> existingIds;
-    for (size_t i = 1; i < existingName.size(); ++i) {
-      // Skip sequence number components
-      if (existingName[i].toUri().find("seq=") != std::string::npos) {
-        continue;
-      }
-      
-      if (existingName[i].isNumber()) {
-        existingIds.insert(existingName[i].toNumber());
-      } else {
-        try {
-          std::string component = existingName[i].toUri();
-          // Parse the %02 format
-          if (component.length() > 1 && component[0] == '%') {
-            component = component.substr(1);
-            existingIds.insert(std::stoi(component));
-          }
-        } catch (...) { }
-      }
-    }
-
-    // Check subset/superset relation
-    bool existingIsSuperset = std::includes(existingIds.begin(), existingIds.end(),
-                                            requestedIds.begin(), requestedIds.end());
-    bool existingIsSubset   = std::includes(requestedIds.begin(), requestedIds.end(),
-                                            existingIds.begin(), existingIds.end());
-    if (existingIsSuperset) {
-      // An already-pending Interest covers all of this new Interest's requirements (and possibly more).
-      // Piggyback: no need to forward new Interest; attach it to the existing one.
-      std::cout << "  [Piggyback] Interest " << interestName.toUri() 
-                << " piggybacks on superset Interest " << existingName.toUri() << std::endl << std::flush;
-      // Add this PIT entry to superset interest's dependents list
-      AggregatePitInfo* supersetInfo = entryRef.getStrategyInfo<AggregatePitInfo>();
-      if (supersetInfo) {
-        supersetInfo->dependentInterests.push_back(pitEntry);
-      }
-      // Do not forward this Interest (it will be satisfied when the superset returns)
-      return;
-    }
-    else if (existingIsSubset) {
-      std::cout << "  [Subset] Interest " << existingName.toUri() 
-                << " is a subset of new Interest " << interestName.toUri() << std::endl << std::flush;
-      
-      // NEW: Create a WaitInfo structure to track dependencies
-      if (!pitInfo->waitInfo) {
-        pitInfo->waitInfo = std::make_shared<WaitInfo>();
-      }
-      
-      // Track which IDs are coming from which interests
-      for (int overlapId : existingIds) {
-        if (pitInfo->pendingIds.find(overlapId) != pitInfo->pendingIds.end()) {
-          // Remove from pendingIds, but add to waitingFor map
-          pitInfo->pendingIds.erase(overlapId);
-          pitInfo->waitInfo->waitingFor[overlapId] = entryRef.getName();
-          
-          std::cout << "  [Tracking] ID " << overlapId << " will come from " 
-                    << entryRef.getName().toUri() << std::endl << std::flush;
-        }
-      }
-      
-      // Link new interest to wait for the subset's Data
-      Name subsetDataName = entryRef.getName();
-      m_waitingInterests[subsetDataName].push_back(pitEntry);
-    }
-  }
-
-  // If some IDs are still pending (either initial missing or those not covered by subset piggyback), we will forward Interests for them.
-  if (!pitInfo->pendingIds.empty()) {
-    std::cout << "If some IDs are still pending" << std::endl << std::flush;
-    // ** 3. Perform Interest Splitting based on routing (FIB) to minimize redundant requests **
-
-    // Group pending IDs by next-hop face (using FIB longest prefix match for each ID)
-    std::map<Face*, std::vector<int>> faceToIdsMap;
-    Fib& fib = m_forwarder.getFib();
-    
-    // Debug: Print FIB size and pending IDs
-    std::cout << "DEBUG: FIB table has " << std::distance(fib.begin(), fib.end()) << " entries" << std::endl << std::flush;
-    std::cout << "DEBUG: Processing " << pitInfo->pendingIds.size() << " pending IDs: [ ";
-    for (int id : pitInfo->pendingIds) {
-      std::cout << id << " ";
-    }
-    std::cout << "]" << std::endl << std::flush;
-    
-    // Map IDs to faces first
-    for (int id : pitInfo->pendingIds) {
-      // Construct a name for the individual ID
-      Name idName("/aggregate");
-      idName.appendNumber(id);
-      std::cout << "DEBUG: Looking up FIB entry for ID " << id << ", Name: " << idName << std::endl << std::flush;
-      
-      const nfd::fib::Entry& fibEntry = fib.findLongestPrefixMatch(idName);
-      if (fibEntry.getPrefix().empty() || fibEntry.getNextHops().empty()) {
-        std::cout << "DEBUG: No route found for ID " << id << ", skipping..." << std::endl << std::flush;
-        continue;
-      }
-      
-      const fib::NextHop& nh = *fibEntry.getNextHops().begin();
-      Face& outFace = nh.getFace();
-      std::cout << "DEBUG: Selected Face " << outFace.getId() << " for ID " << id << std::endl << std::flush;
-      
-      faceToIdsMap[&outFace].push_back(id);
-    }
-
-    // NEW OPTIMIZATION: If all IDs map to exactly one face, forward only the pending IDs to that face
-    if (faceToIdsMap.size() == 1 && faceToIdsMap.begin()->second.size() == pitInfo->pendingIds.size()) {
-      Face* outFace = faceToIdsMap.begin()->first;
-      std::cout << "OPTIMIZATION: All " << pitInfo->pendingIds.size() 
-                << " IDs route to the same face (ID: " << outFace->getId() 
-                << ")." << std::endl;
-      
-      // Check if the original interest already has exactly the IDs we need
-      bool needsRewrite = false;
-      std::set<int> originalInterestIds = parseRequestedIds(interest);
-      if (originalInterestIds != pitInfo->pendingIds) {
-        needsRewrite = true;
-      }
-      
-      if (needsRewrite) {
-        // Original code continues below - create a new interest with optimized IDs
-        std::vector<int> pendingIdsList(pitInfo->pendingIds.begin(), pitInfo->pendingIds.end());
-        std::sort(pendingIdsList.begin(), pendingIdsList.end());
-
-        // Build name with only pending IDs: /aggregate/id1/id2/...
-        Name optimizedName;
-        optimizedName.append("aggregate");
-        for (int id : pendingIdsList) {
-          optimizedName.appendNumber(id);
-        }
-
-        // If the sequence number was in the original interest, preserve it
-        for (size_t i = 0; i < interest.getName().size(); i++) {
-          if (interest.getName()[i].toUri().find("seq=") != std::string::npos) {
-            optimizedName.append(interest.getName()[i]);
-            break;
-          }
-        }
-
-        std::cout << "  >> Creating optimized interest with only pending IDs: " 
-                  << optimizedName << std::endl;
-                  
-        // Create and forward the optimized interest
-        auto optimizedInterest = std::make_shared<Interest>(optimizedName);
-        optimizedInterest->setCanBePrefix(false);
-        optimizedInterest->setInterestLifetime(interest.getInterestLifetime());
-
-        // Create a new PIT entry for the optimized interest instead of using the original one
-        auto newPitEntry = m_forwarder.getPit().insert(*optimizedInterest).first;
-
-        // Store relationship between new and original PIT entries
-        AggregateSubInfo* subInfo = newPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
-        if (subInfo) {
-          subInfo->parentEntry = pitEntry;
-        }
-
-        // Add to parent map to track relationship
-        m_parentMap[optimizedName] = pitEntry;
-
-        // Send using the new PIT entry
-        this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
-
-        // CRITICAL FIX: Since this is a new PIT entry, copy the original InRecords
-        for (const auto& inRecord : pitEntry->getInRecords()) {
-          newPitEntry->insertOrUpdateInRecord(inRecord.getFace(), *optimizedInterest);
-          std::cout << "  [PRESERVED] Copied InRecord from original PIT entry (face " 
-                    << inRecord.getFace().getId() << ") to optimized PIT entry" << std::endl;
-        }
-
-        // If there were no InRecords in the original, use the ingress face
-        if (pitEntry->getInRecords().empty()) {
-          newPitEntry->insertOrUpdateInRecord(ingress.face, *optimizedInterest);
-          std::cout << "  [PRESERVED] Added ingress face " << ingress.face.getId() 
-                    << " as InRecord for optimized PIT entry" << std::endl;
-        }
-
-      } 
-      else {
-        // The original interest already has exactly what we need, just forward it directly
-        std::cout << "  >> Forwarding original interest directly - no optimization needed" << std::endl;
-        this->sendInterest(interest, *outFace, pitEntry);
-
-        // CRITICAL FIX: Restore the InRecord that NDN removed during forwarding
-        pitEntry->insertOrUpdateInRecord(ingress.face, interest);
-        std::cout << "  [PRESERVED] Restored InRecord for face " << ingress.face.getId() 
-                  << " in PIT entry for " << interest.getName() << std::endl;
-      }
-
-      this->setExpiryTimer(pitEntry, interest.getInterestLifetime());
-      return;
-    }
-
-    // Debug output for face-to-IDs mapping
-    std::cout << "DEBUG: Face-to-IDs mapping results:" << std::endl << std::flush;
-    for (const auto& pair : faceToIdsMap) {
-      std::cout << "  - Face ID " << pair.first->getId() << " will handle IDs: [ ";
-      for (int id : pair.second) {
-        std::cout << id << " ";
-      }
-      std::cout << "]" << std::endl << std::flush;
-    }
-
-    // For each outgoing face, create a sub-Interest covering the IDs assigned to that face
-    for (auto& faceGroup : faceToIdsMap) {
-      Face* outFace = faceGroup.first;
-      std::vector<int>& idList = faceGroup.second;
-      if (idList.empty()) continue;
-      // Sort IDs to create a canonical order in the interest name
-      std::sort(idList.begin(), idList.end());
-      // Build the Name for the sub-interest: "/aggregate/id1/id2/..."
-      Name subInterestName;
-      subInterestName.append("aggregate");
-      for (int id : idList) {
-        subInterestName.appendNumber(id);
-      }
-
-      // Add this block to preserve sequence numbers in split interests
-      // Preserve sequence number from original interest
-      for (size_t i = 0; i < interest.getName().size(); i++) {
-        if (interest.getName()[i].toUri().find("seq=") != std::string::npos) {
-          subInterestName.append(interest.getName()[i]);
-          std::cout << "  >> Preserved sequence component in split interest: " 
-                    << interest.getName()[i].toUri() << std::endl;
-          break;
-        }
-      }
-
-      // add the sub-interest into the parent map
-      m_parentMap[subInterestName] = pitEntry;
-
-      // *** Add these lines: ***
-      const nfd::fib::Entry& fibEntry = fib.findLongestPrefixMatch(subInterestName);
-      std::cout << ">> Forwarding sub-Interest " << subInterestName.toUri()
-                << " via face " << outFace->getId()
-                << " (FIB match: " << fibEntry.getPrefix().toUri() << ")" << std::endl;
-      // *** End addition ***
-
-      // create Interest with shared_ptr to avoid bad_weak_ptr exception
-      std::shared_ptr<ndn::Interest> subInterest = std::make_shared<Interest>(subInterestName);
-      subInterest->setCanBePrefix(false);
-      subInterest->setInterestLifetime(interest.getInterestLifetime());
-      // Insert a copy of the Interest to avoid bad_weak_ptr
-      auto temporaryEntry = m_forwarder.getPit().insert(*subInterest).first;
-
-      this->sendInterest(*subInterest, *outFace, temporaryEntry);
-
-      // CRITICAL FIX: Add an InRecord to the new PIT entry, using the original ingress face
-      temporaryEntry->insertOrUpdateInRecord(ingress.face, *subInterest);
-      std::cout << "  [PRESERVED] Added InRecord from original face " << ingress.face.getId()
-                << " to sub-interest PIT entry for " << subInterestName << std::endl;
-
-      // After forwarding, find the newly created PIT entry and attach our metadata
-      shared_ptr<pit::Entry> subPitEntry = m_forwarder.getPit().find(*subInterest);
-
-      if (subPitEntry) {
-        // Store parent-child relationship as before
-        AggregateSubInfo* subInfo = subPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
-        if (subInfo) {
-            subInfo->parentEntry = pitEntry;
-        }
-        // **Add dummy in-record so Data triggers strategy**
-        if (subPitEntry->getInRecords().empty()) {
-          Face& dummyFace = *outFace;  // use the face from which the aggregate Interest arrived
-            subPitEntry->insertOrUpdateInRecord(dummyFace, *subInterest);
-            std::cout << "  (Added dummy in-record for sub-interest " 
-                      << subInterestName.toUri() << " on face " << dummyFace.getId() 
-                      << ")" << std::endl;
-        }
-    
-        std::cout << "  >> Forwarded sub-Interest " << subInterestName.toUri()
-                  << " to face " << outFace->getId() << " (new PIT entry created)" << std::endl;
-      }
-    }
-  // All necessary sub-interests have been forwarded.
-  // We will wait for their Data responses to aggregate.
-  }
-  else {
-    // If no pending IDs to forward (somehow fully piggybacked on existing interests), we just wait.
-    std::cout << "  (No new sub-interests forwarded for " << interestName.toUri() << ")" << std::endl << std::flush;
-  }
-
-  // Note: We do NOT call sendInterest on the original Interest name itself, since it has been split.
-  // We keep the PIT entry alive until all needed data arrives (handled in afterReceiveData).
+  // 8. Set expiry timer
   this->setExpiryTimer(pitEntry, interest.getInterestLifetime());
-  return;
 }
 
 // ** Handling incoming Data packets (from upstream) **
@@ -693,7 +143,7 @@ AggregateStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingres
                                    const shared_ptr<pit::Entry>& pitEntry) 
 {
   // Add this explicit role logging at the start
-  std::cout << getNodeRoleString() << " - STRATEGY processing Data: " << data.getName() 
+  std::cout << ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, m_nodeId - 1) << " - STRATEGY processing Data: " << data.getName() 
             << " from face " << ingress.face.getId() 
             << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
             << "s" << std::endl << std::flush;
@@ -785,7 +235,7 @@ AggregateStrategy::beforeSatisfyInterest(const Data& data,
                                      const FaceEndpoint& ingress,
                                      const shared_ptr<pit::Entry>& pitEntry)
 {
-  std::cout << "\n!! RAW DATA RECEIVED BY FORWARDER: " << getNodeRoleString() 
+  std::cout << "\n!! RAW DATA RECEIVED BY FORWARDER: " << ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, m_nodeId - 1)
             << " received data " << data.getName() 
             << " from face " << ingress.face.getId() << std::endl;
   
@@ -851,159 +301,27 @@ AggregateStrategy::processSubInterestData(const Data& data, const Name& dataName
                                         const FaceEndpoint& ingress,
                                         const shared_ptr<pit::Entry>& pitEntry)
 {
-  auto parentIt = m_parentMap.find(dataName);
-  if (parentIt == m_parentMap.end()) {
-    return; // Not a sub-interest
+  // 1. Find and validate the parent PIT entry
+  auto [parentPit, parentInfo] = findParentPitEntry(dataName);
+  if (!parentPit || !parentInfo) {
+    return; // Invalid parent entry
   }
 
-  std::cout << "  [SubInterest] Found matching parent for Data " << dataName.toUri() << std::endl << std::flush;
-  // This data is a response to a sub-interest that our strategy created.
-  // Retrieve the parent PIT entry that initiated this sub-interest
-  std::shared_ptr<pit::Entry> parentPit = parentIt->second.lock();
-  if (!parentPit) {
-    std::cout << "  [SubInterest] Parent PIT entry already expired" << std::endl << std::flush;
-    m_parentMap.erase(dataName);
-    return;
-  }
+  // 2. Update parent with data from this sub-interest
+  updateParentWithSubInterestData(data, dataName, parentInfo);
   
-  AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
-  if (!parentInfo) {
-    std::cout << "  [SubInterest] No strategy info found for parent PIT entry" << std::endl << std::flush;
-    m_parentMap.erase(dataName);
-    return;
-  }
-  
-  std::cout << "  [SubInterest] Processing Data for parent Interest " << parentPit->getName().toUri() << std::endl << std::flush;
-  
-  // Parse the content of the Data to extract the numeric value
-  uint64_t value = ns3::ndn::AggregateUtils::extractValueFromContent(data);
-  
-  // Determine which IDs this data covers (from its name components)
-  std::set<int> dataIds = ns3::ndn::AggregateUtils::parseNumbersFromName(dataName);
-  
-  // Update parent's partial sum and mark these IDs as fulfilled
-  parentInfo->partialSum += value;
-  for (int fulfilledId : dataIds) {
-    parentInfo->pendingIds.erase(fulfilledId);
-    // If this was a single-ID data, cache it for future Interests
-    if (dataIds.size() == 1) {
-      m_cachedValues[fulfilledId] = value;  // store in local cache
-      std::cout << "  [Cache] Stored value " << value << " for single ID " << fulfilledId << std::endl << std::flush;
-    }
-  }
-  
-  std::cout << "    [Aggregation] Data " << dataName.toUri() << " contributes value " 
-            << value << " to parent Interest " << parentPit->getName().toUri() << std::endl;
-  std::cout << "    Remaining IDs for parent: { ";
-  for (int pid : parentInfo->pendingIds) std::cout << pid << " ";
-  std::cout << "}" << std::endl << std::flush;
-  
-  // If all components for the parent interest have arrived (pending set empty), produce the aggregated Data
+  // 3. If all components have arrived, satisfy the parent interest
   if (parentInfo->pendingIds.empty()) {
-    std::cout << "  [SubInterest] All components received, creating final aggregated Data" << std::endl << std::flush;
-    uint64_t totalSum = parentInfo->partialSum;
-    Name parentName = parentPit->getName();
+    // Send aggregated data to parent faces
+    sendAggregatedDataToParentFaces(parentPit, parentInfo);
     
-    auto aggData = ns3::ndn::AggregateUtils::createDataWithValue(parentName, totalSum);
+    // Process any piggybacked interests
+    satisfyPiggybackedInterests(parentInfo);
     
-    // SAFE APPROACH: Create temporary interest and PIT entry for sending
-    // Capture face information before potential PIT entry invalidation
-    std::vector<Face*> outFaces;
-    for (const auto& inRecord : parentPit->getInRecords()) {
-      outFaces.push_back(&inRecord.getFace());
-    }
-    
-    if (outFaces.empty()) {
-      std::cout << "  [WARNING] Parent PIT entry has no InRecords - cannot send data" << std::endl;
-    } else {
-      // Process each face with a robust approach
-      for (Face* outFace : outFaces) {
-        try {
-          // Create a temporary interest with the same name as the parent
-          Interest tempInterest(parentName);
-          auto tempPitEntry = m_forwarder.getPit().insert(tempInterest).first;
-          
-          // Add the face as an in-record for our temporary PIT entry
-          tempPitEntry->insertOrUpdateInRecord(*outFace, tempInterest);
-          
-          // Now send data using this temporary PIT entry
-          this->sendData(*aggData, *outFace, tempPitEntry);
-          
-          std::cout << "<< Generated aggregate Data " << parentName.toUri() 
-                   << " with sum = " << totalSum 
-                   << " to face " << outFace->getId() 
-                   << " (via safe temp PIT entry)" << std::endl << std::flush;
-        }
-        catch (const std::exception& e) {
-          std::cout << "  [ERROR] Failed to send data: " << e.what() << std::endl;
-        }
-      }
-    }
-    
-    // Process any piggybacked interests with the same safe approach
-    if (!parentInfo->dependentInterests.empty()) {
-      std::cout << "  [SubInterest] Satisfying " << parentInfo->dependentInterests.size() 
-                << " piggybacked child interests" << std::endl << std::flush;
-                
-      for (auto& weakChildPit : parentInfo->dependentInterests) {
-        auto childPit = weakChildPit.lock();
-        if (!childPit) continue;
-        
-        // Compute the subset sum for the child (it might be different from totalSum if parent had extra IDs)
-        AggregatePitInfo* childInfo = childPit->getStrategyInfo<AggregatePitInfo>();
-        if (!childInfo) continue;
-        
-        // Sum up values for child's needed IDs from our cached values (all should be available now)
-        uint64_t childSum = 0;
-        for (int cid : childInfo->neededIds) {
-          if (m_cachedValues.find(cid) != m_cachedValues.end()) {
-            childSum += m_cachedValues[cid];
-          }
-        }
-        
-        // Capture child's faces before potential PIT invalidation
-        std::vector<Face*> childFaces;
-        for (const auto& inRecord : childPit->getInRecords()) {
-          childFaces.push_back(&inRecord.getFace());
-        }
-        
-        if (childFaces.empty()) {
-          std::cout << "  [WARNING] Child PIT entry has no InRecords - cannot send data" << std::endl;
-          continue;
-        }
-        
-        // Send Data to satisfy the child interest with safe approach
-        Name childName = childPit->getName();
-        auto childData = ns3::ndn::AggregateUtils::createDataWithValue(childName, childSum);
-        
-        // Send to all child's in-faces using temp PIT entries
-        for (Face* outFace : childFaces) {
-          try {
-            // Create a temporary interest with the same name as the child
-            Interest tempInterest(childName);
-            auto tempPitEntry = m_forwarder.getPit().insert(tempInterest).first;
-            
-            // Add the face as an in-record for our temporary PIT entry
-            tempPitEntry->insertOrUpdateInRecord(*outFace, tempInterest);
-            
-            // Now send data using this temporary PIT entry
-            this->sendData(*childData, *outFace, tempPitEntry);
-            
-            std::cout << "<< Satisfied piggybacked Interest " << childName.toUri() 
-                      << " with sum = " << childSum 
-                      << " to face " << outFace->getId()
-                      << " (via safe temp PIT entry)" << std::endl;
-          }
-          catch (const std::exception& e) {
-            std::cout << "  [ERROR] Failed to send piggybacked data: " << e.what() << std::endl;
-          }
-        }
-      }
-    }
+    // IMPORTANT: Only remove the mapping AFTER we've finished using it
+    m_parentMap.erase(dataName);
+    std::cout << "  [SubInterest] Removed parent mapping for " << dataName.toUri() << std::endl << std::flush;
   }
-  
-  // Remove the mapping as this sub-interest's data has been processed
-  m_parentMap.erase(dataName);
 }
 
 void 
@@ -1089,7 +407,40 @@ AggregateStrategy::processWaitingInterestData(const Data& data, const Name& data
       std::cout << "  [WaitingInterest] All components received for waiting interest, creating final Data" 
                 << std::endl << std::flush;
       
-      // ... rest of the existing code to create and send data ...
+      // In processWaitingInterestData, replace the code inside the "if (!stillWaitingForData)" block:
+
+      if (!stillWaitingForData) {
+        // Create and send the aggregated data
+        Name childName = waitingPit->getName();
+        auto childData = ns3::ndn::AggregateUtils::createDataWithValue(childName, waitingInfo->partialSum);
+        
+        // Ensure we identify the correct outgoing face by examining the original incoming face
+        std::vector<Face*> outFaces;
+        for (const auto& inRecord : waitingPit->getInRecords()) {
+          outFaces.push_back(&inRecord.getFace());
+        }
+        
+        // Send data directly to each face WITHOUT using PIT entries at all
+        for (Face* outFace : outFaces) {
+          try {
+            // Use low-level direct send method that doesn't rely on PIT
+            outFace->sendData(*childData);
+            
+            std::cout << "<< Sent aggregate Data for waiting Interest " << childName.toUri() 
+                      << " with sum = " << waitingInfo->partialSum
+                      << " to face " << outFace->getId() 
+                      << " (direct send, bypassing PIT)" << std::endl;
+          }
+          catch (const std::exception& e) {
+            std::cout << "  [ERROR] Failed to send waiting interest data: " << e.what() << std::endl;
+          }
+        }
+        
+        if (outFaces.empty()) {
+          std::cout << "  [WARNING] Waiting interest has no InRecords - cannot send data" << std::endl;
+        }
+      }
+
     }
     else {
       std::cout << "  [WaitingInterest] Interest still waiting for " << waitingInfo->pendingIds.size() 
@@ -1127,6 +478,597 @@ AggregateStrategy::processDirectData(const Data& data, const Name& dataName,
     } 
     catch (...) { 
       std::cout << "  [DirectData] Failed to parse ID as integer" << std::endl << std::flush;
+    }
+  }
+}
+
+// Helper function for "afterReceiveInterest":
+
+void 
+AggregateStrategy::logDebugInfo(const Interest& interest, const FaceEndpoint& ingress)
+{
+  std::cout << '\n' << ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, m_nodeId - 1)
+          << " - STRATEGY received Interest: " << interest.getName() 
+          << " via " << ingress.face.getId() 
+          << " at " << std::fixed << std::setprecision(2) << ns3::Simulator::Now().GetSeconds() 
+          << "s" << std::endl << std::flush;
+
+  // Debug: Print PIT info
+  printPitDebugInfo(m_forwarder.getPit());
+
+  // Debug: Print FIB info
+  Fib& fib = m_forwarder.getFib();
+  std::cout << "DEBUG: FIB table has " << std::distance(fib.begin(), fib.end()) << " entries" << std::endl << std::flush;
+  
+  std::cout << "DEBUG: Current FIB entries:" << std::endl;
+  for (const auto& fibEntry : fib) {
+    std::cout << "  - Prefix: " << fibEntry.getPrefix() << " (Nexthops: " << fibEntry.getNextHops().size() << ")" << std::endl;
+    for (const auto& nh : fibEntry.getNextHops()) {
+      std::cout << "    * Face: " << nh.getFace().getId() << " Cost: " << nh.getCost() << std::endl;
+    }
+  }
+}
+
+void 
+AggregateStrategy::printPitDebugInfo(const Pit& pit)
+{
+  std::cout << "Current PIT entries before forwarding Interest:" << std::endl;
+  for (auto it = pit.begin(); it != pit.end(); ++it) {
+    const nfd::pit::Entry &entry = *it;
+    std::cout << "  PIT entry: " << entry.getName() 
+              << " (InFaces=" << entry.getInRecords().size() 
+              << ", OutFaces=" << entry.getOutRecords().size() << ")" << std::endl;
+  }
+}
+
+bool 
+AggregateStrategy::checkInterestAggregation(const Interest& interest, const FaceEndpoint& ingress,
+                                          const shared_ptr<pit::Entry>& pitEntry)
+{
+  // Check #1: Interest has already been forwarded (has OutFaces)
+  if (pitEntry->hasOutRecords()) {
+    bool isSameFaceDuplicate = false;
+    bool isDifferentFaceDuplicate = false;
+    
+    for (const auto& inRecord : pitEntry->getInRecords()) {
+      if (inRecord.getFace().getId() == ingress.face.getId()) {
+        isSameFaceDuplicate = true;
+      } else {
+        isDifferentFaceDuplicate = true;
+      }
+    }
+    
+    if (isSameFaceDuplicate) {
+      std::cout << "  [Interest Aggregation] Duplicate interest from same face detected" << std::endl;
+      std::cout << "  [Interest Aggregation] Interest " << interest.getName() 
+                << " already forwarded - suppressing redundant forwarding" << std::endl;
+      return true; // Aggregated
+    }
+    
+    if (isDifferentFaceDuplicate) {
+      std::cout << "  [Interest Aggregation] Duplicate interest from different face detected" << std::endl;
+      std::cout << "  [Interest Aggregation] Interest " << interest.getName() 
+                << " aggregated (added face " << ingress.face.getId() 
+                << " to existing PIT entry)" << std::endl;
+      return true; // Aggregated
+    }
+  }
+  
+  // Check #2: Another PIT entry exists with the same name and has been forwarded
+  Pit &pit = m_forwarder.getPit();
+  for (auto it = pit.begin(); it != pit.end(); ++it) {
+    const nfd::pit::Entry &entry = *it;
+    
+    if (&entry == pitEntry.get()) {
+      continue;
+    }
+    
+    if (entry.getName() == interest.getName() && entry.hasOutRecords()) {
+      std::cout << "  [Interest Aggregation] Duplicate interest " << interest.getName() 
+                << " detected across different PIT entries" << std::endl;
+      std::cout << "  [Interest Aggregation] Original PIT entry with "
+                << entry.getInRecords().size() << " in-faces and "
+                << entry.getOutRecords().size() << " out-faces" << std::endl;
+      return true; // Aggregated
+    }
+  }
+  
+  return false; // Not aggregated
+}
+
+void 
+AggregateStrategy::forwardRegularInterest(const Interest& interest, const FaceEndpoint& ingress,
+                                        const shared_ptr<pit::Entry>& pitEntry)
+{
+  // Get the FIB entry
+  const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
+  
+  // Find a face to forward to (first available nexthop)
+  const fib::NextHopList& nexthops = fibEntry.getNextHops();
+  if (!nexthops.empty()) {
+    Face& outFace = nexthops.begin()->getFace();
+    std::cout << "[Strategy] Forwarding regular Interest " 
+            << interest.getName() << " to face " << outFace.getId() << std::endl;
+    this->sendInterest(interest, outFace, pitEntry);
+
+    // CRITICAL FIX: Preserve the InRecord that NDN removes during forwarding
+    pitEntry->insertOrUpdateInRecord(ingress.face, interest);
+    std::cout << "  [PRESERVED] Restored InRecord for face " << ingress.face.getId() 
+              << " in PIT entry for " << interest.getName() << std::endl;
+  }
+}
+
+bool 
+AggregateStrategy::processContentStoreHits(const Interest& interest, const FaceEndpoint& ingress,
+                                        const shared_ptr<pit::Entry>& pitEntry, 
+                                        AggregatePitInfo* pitInfo)
+{
+  // Check if we can satisfy from cache
+  for (auto it = pitInfo->pendingIds.begin(); it != pitInfo->pendingIds.end();) {
+    int id = *it;
+    if (m_cachedValues.find(id) != m_cachedValues.end()) {
+      uint64_t cachedValue = m_cachedValues[id];
+      pitInfo->partialSum += cachedValue;
+      std::cout << "  [CacheHit] Value for ID " << id << " = " 
+                << cachedValue << " (from CS)" << std::endl << std::flush;
+      it = pitInfo->pendingIds.erase(it);
+      continue;
+    }
+    ++it;
+  }
+
+  // If all satisfied from cache, create Data packet
+  if (pitInfo->pendingIds.empty()) {
+    uint64_t totalSum = pitInfo->partialSum;
+    auto data = ns3::ndn::AggregateUtils::createDataWithValue(interest.getName(), totalSum);
+    
+    for (const auto& inRecord : pitEntry->getInRecords()) {
+        Face& outFace = inRecord.getFace();
+        this->sendData(*data, outFace, pitEntry);
+    }
+    std::cout << "<< Satisfied Interest " << interest.getName().toUri() 
+              << " from cache with sum = " << totalSum << std::endl << std::flush;
+    return true; // Fully satisfied from cache
+  }
+  
+  return false; // Not fully satisfied
+}
+
+void 
+AggregateStrategy::checkSubsetSupersetRelationships(const Interest& interest, 
+                                                  const shared_ptr<pit::Entry>& pitEntry,
+                                                  AggregatePitInfo* pitInfo,
+                                                  const std::set<int>& requestedIds)
+{
+  Name interestName = interest.getName();
+  Pit& pitTable = m_forwarder.getPit();
+  
+  for (auto it = pitTable.begin(); it != pitTable.end(); ++it) {
+    const pit::Entry& entryRef = *it;
+
+    // Skip if not aggregate interest or same PIT entry
+    Name existingName = entryRef.getName();
+    if (existingName.size() < 2 || existingName.get(0).toUri() != "aggregate" || 
+        &entryRef == pitEntry.get()) {
+      continue;
+    }
+
+    // Use utility function to check sequence matching
+    bool sequencesMatch = ns3::ndn::AggregateUtils::doSequenceComponentsMatch(existingName, interestName);
+    if (!sequencesMatch) {
+      continue;
+    }
+
+    // Get existing interest's IDs
+    std::set<int> existingIds = ns3::ndn::AggregateUtils::parseNumbersFromName(existingName);
+
+    // Check subset/superset relation
+    bool existingIsSuperset = std::includes(existingIds.begin(), existingIds.end(),
+                                          requestedIds.begin(), requestedIds.end());
+    bool existingIsSubset = std::includes(requestedIds.begin(), requestedIds.end(),
+                                        existingIds.begin(), existingIds.end());
+                                        
+    if (existingIsSuperset) {
+      // Piggyback on existing interest
+      std::cout << "  [Piggyback] Interest " << interestName.toUri() 
+                << " piggybacks on superset Interest " << existingName.toUri() << std::endl << std::flush;
+      AggregatePitInfo* supersetInfo = entryRef.getStrategyInfo<AggregatePitInfo>();
+      if (supersetInfo) {
+        supersetInfo->dependentInterests.push_back(pitEntry);
+      }
+      return; // Return, don't forward
+    }
+    else if (existingIsSubset) {
+      std::cout << "  [Subset] Interest " << existingName.toUri() 
+                << " is a subset of new Interest " << interestName.toUri() << std::endl << std::flush;
+      
+      // Create WaitInfo structure if needed
+      if (!pitInfo->waitInfo) {
+        pitInfo->waitInfo = std::make_shared<WaitInfo>();
+      }
+      
+      // Track IDs coming from existing interest
+      for (int overlapId : existingIds) {
+        if (pitInfo->pendingIds.find(overlapId) != pitInfo->pendingIds.end()) {
+          pitInfo->pendingIds.erase(overlapId);
+          pitInfo->waitInfo->waitingFor[overlapId] = entryRef.getName();
+          
+          std::cout << "  [Tracking] ID " << overlapId << " will come from " 
+                    << entryRef.getName().toUri() << std::endl << std::flush;
+        }
+      }
+      
+      // Link to wait for the subset's Data
+      Name subsetDataName = entryRef.getName();
+      m_waitingInterests[subsetDataName].push_back(pitEntry);
+    }
+  }
+}
+
+void 
+AggregateStrategy::splitAndForwardInterests(const Interest& interest, const FaceEndpoint& ingress,
+                                          const shared_ptr<pit::Entry>& pitEntry,
+                                          AggregatePitInfo* pitInfo)
+{
+  // Skip if no pending IDs
+  if (pitInfo->pendingIds.empty()) {
+    std::cout << "  (No new sub-interests forwarded for " << interest.getName().toUri() << ")" << std::endl << std::flush;
+    return;
+  }
+
+  // Group pending IDs by next-hop face (using FIB)
+  std::map<Face*, std::vector<int>> faceToIdsMap;
+  Fib& fib = m_forwarder.getFib();
+  
+  // Map IDs to faces
+  for (int id : pitInfo->pendingIds) {
+    Name idName("/aggregate");
+    idName.appendNumber(id);
+    std::cout << "DEBUG: Looking up FIB entry for ID " << id << ", Name: " << idName << std::endl << std::flush;
+    
+    const nfd::fib::Entry& fibEntry = fib.findLongestPrefixMatch(idName);
+    if (fibEntry.getPrefix().empty() || fibEntry.getNextHops().empty()) {
+      std::cout << "DEBUG: No route found for ID " << id << ", skipping..." << std::endl << std::flush;
+      continue;
+    }
+    
+    const fib::NextHop& nh = *fibEntry.getNextHops().begin();
+    Face& outFace = nh.getFace();
+    std::cout << "DEBUG: Selected Face " << outFace.getId() << " for ID " << id << std::endl << std::flush;
+    
+    faceToIdsMap[&outFace].push_back(id);
+  }
+
+  // Optimization: All IDs to one face
+  if (faceToIdsMap.size() == 1 && faceToIdsMap.begin()->second.size() == pitInfo->pendingIds.size()) {
+    handleSingleFaceForwarding(interest, ingress, pitEntry, pitInfo, faceToIdsMap);
+    return;
+  }
+
+  // Debug output for face-to-IDs mapping
+  std::cout << "DEBUG: Face-to-IDs mapping results:" << std::endl << std::flush;
+  for (const auto& pair : faceToIdsMap) {
+    std::cout << "  - Face ID " << pair.first->getId() << " will handle IDs: [ ";
+    for (int id : pair.second) {
+      std::cout << id << " ";
+    }
+    std::cout << "]" << std::endl << std::flush;
+  }
+
+  // Create and forward split interests
+  forwardSplitInterests(interest, ingress, pitEntry, faceToIdsMap);
+}
+
+void 
+AggregateStrategy::handleSingleFaceForwarding(const Interest& interest, const FaceEndpoint& ingress,
+                                           const shared_ptr<pit::Entry>& pitEntry,
+                                           AggregatePitInfo* pitInfo,
+                                           const std::map<Face*, std::vector<int>>& faceToIdsMap)
+{
+  Face* outFace = faceToIdsMap.begin()->first;
+  std::cout << "OPTIMIZATION: All " << pitInfo->pendingIds.size() 
+            << " IDs route to the same face (ID: " << outFace->getId() 
+            << ")." << std::endl;
+  
+  // Check if original interest already has exactly what we need
+  bool needsRewrite = false;
+  std::set<int> originalInterestIds = ns3::ndn::AggregateUtils::parseNumbersFromName(interest.getName());
+  if (originalInterestIds != pitInfo->pendingIds) {
+    needsRewrite = true;
+  }
+  
+  if (needsRewrite) {
+    // Create optimized interest with only pending IDs
+    std::vector<int> pendingIdsList(pitInfo->pendingIds.begin(), pitInfo->pendingIds.end());
+    std::sort(pendingIdsList.begin(), pendingIdsList.end());
+    
+    Name optimizedName;
+    optimizedName.append("aggregate");
+    for (int id : pendingIdsList) {
+      optimizedName.appendNumber(id);
+    }
+
+    // Preserve sequence number if present
+    Name::Component seqComponent = ns3::ndn::AggregateUtils::extractSequenceComponent(interest.getName());
+    if (!seqComponent.empty()) {
+      optimizedName.append(seqComponent);
+    }
+
+    std::cout << "  >> Creating optimized interest with only pending IDs: " 
+              << optimizedName << std::endl;
+              
+    // Create and forward the optimized interest
+    auto optimizedInterest = ns3::ndn::AggregateUtils::createSplitInterest(
+      optimizedName, interest.getInterestLifetime());
+
+    // Insert into PIT and set up parent relationship
+    auto newPitEntry = m_forwarder.getPit().insert(*optimizedInterest).first;
+    AggregateSubInfo* subInfo = newPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
+    if (subInfo) {
+      subInfo->parentEntry = pitEntry;
+    }
+
+    // Add to parent map
+    m_parentMap[optimizedName] = pitEntry;
+
+    // Send and preserve in-records
+    this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
+    
+    // Copy original InRecords
+    for (const auto& inRecord : pitEntry->getInRecords()) {
+      newPitEntry->insertOrUpdateInRecord(inRecord.getFace(), *optimizedInterest);
+      std::cout << "  [PRESERVED] Copied InRecord from original PIT entry (face " 
+                << inRecord.getFace().getId() << ") to optimized PIT entry" << std::endl;
+    }
+
+    // If no InRecords, use ingress face
+    if (pitEntry->getInRecords().empty()) {
+      newPitEntry->insertOrUpdateInRecord(ingress.face, *optimizedInterest);
+      std::cout << "  [PRESERVED] Added ingress face " << ingress.face.getId() 
+                << " as InRecord for optimized PIT entry" << std::endl;
+    }
+  } 
+  else {
+    // Forward original interest directly
+    std::cout << "  >> Forwarding original interest directly - no optimization needed" << std::endl;
+    this->sendInterest(interest, *outFace, pitEntry);
+
+    // Restore InRecord
+    pitEntry->insertOrUpdateInRecord(ingress.face, interest);
+    std::cout << "  [PRESERVED] Restored InRecord for face " << ingress.face.getId() 
+              << " in PIT entry for " << interest.getName() << std::endl;
+  }
+}
+
+void 
+AggregateStrategy::forwardSplitInterests(const Interest& interest, const FaceEndpoint& ingress,
+                                      const shared_ptr<pit::Entry>& pitEntry,
+                                      const std::map<Face*, std::vector<int>>& faceToIdsMap)
+{
+  // Create sub-interest for each group of IDs
+  for (const auto& pair : faceToIdsMap) {
+    Face* outFace = pair.first;
+    const std::vector<int>& faceIds = pair.second;
+    
+    // Skip empty sets
+    if (faceIds.empty()) continue;
+    
+    // Create a new Name with only the IDs for this face
+    Name subInterestName;
+    subInterestName.append("aggregate");
+    for (int id : faceIds) {
+      subInterestName.appendNumber(id);
+    }
+    
+    // Preserve sequence number
+    Name::Component seqComponent = ns3::ndn::AggregateUtils::extractSequenceComponent(interest.getName());
+    if (!seqComponent.empty()) {
+      subInterestName.append(seqComponent);
+    }
+    
+    std::cout << "  >> Creating sub-interest for " << faceIds.size() 
+              << " IDs: " << subInterestName << " (face " << outFace->getId() << ")" << std::endl;
+    
+    // Create a new Interest with this name
+    auto subInterest = ns3::ndn::AggregateUtils::createSplitInterest(
+      subInterestName, interest.getInterestLifetime());
+    
+    // Insert into PIT
+    auto newPitEntry = m_forwarder.getPit().insert(*subInterest).first;
+    
+    // Add metadata to link this sub-interest with its parent
+    AggregateSubInfo* subInfo = newPitEntry->insertStrategyInfo<AggregateSubInfo>().first;
+    if (subInfo) {
+      subInfo->parentEntry = pitEntry;
+    }
+    
+    // Also add to our parent map
+    m_parentMap[subInterestName] = pitEntry;
+    
+    // Forward the interest
+    this->sendInterest(*subInterest, *outFace, newPitEntry);
+    
+    // Ensure the sub-interest has the right InRecords copied
+    newPitEntry->insertOrUpdateInRecord(ingress.face, *subInterest);
+    
+    std::cout << "  [Sub-Interest] Forwarded Interest " << subInterestName.toUri() 
+              << " via face " << outFace->getId() << std::endl << std::flush;
+  }
+}
+
+// Debug helper functions for "processSubInterestData"
+std::pair<std::shared_ptr<pit::Entry>, AggregateStrategy::AggregatePitInfo*> 
+AggregateStrategy::findParentPitEntry(const Name& dataName)
+{
+  auto parentIt = m_parentMap.find(dataName);
+  if (parentIt == m_parentMap.end()) {
+    return {nullptr, nullptr}; // Not a sub-interest
+  }
+
+  std::cout << "  [SubInterest] Found matching parent for Data " << dataName.toUri() << std::endl << std::flush;
+  
+  // Retrieve the parent PIT entry that initiated this sub-interest
+  std::shared_ptr<pit::Entry> parentPit = parentIt->second.lock();
+  if (!parentPit) {
+    std::cout << "  [SubInterest] Parent PIT entry already expired" << std::endl << std::flush;
+    m_parentMap.erase(dataName);
+    return {nullptr, nullptr};
+  }
+  
+  AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
+  if (!parentInfo) {
+    std::cout << "  [SubInterest] No strategy info found for parent PIT entry" << std::endl << std::flush;
+    m_parentMap.erase(dataName);
+    return {nullptr, nullptr};
+  }
+  
+  std::cout << "  [SubInterest] Processing Data for parent Interest " << parentPit->getName().toUri() << std::endl << std::flush;
+  return {parentPit, parentInfo};
+}
+
+uint64_t 
+AggregateStrategy::updateParentWithSubInterestData(const Data& data, const Name& dataName, 
+                                                AggregatePitInfo* parentInfo)
+{
+  // Parse the content of the Data to extract the numeric value
+  uint64_t value = ns3::ndn::AggregateUtils::extractValueFromContent(data);
+  
+  // Determine which IDs this data covers (from its name components)
+  std::set<int> dataIds = ns3::ndn::AggregateUtils::parseNumbersFromName(dataName);
+  
+  // Update parent's partial sum and mark these IDs as fulfilled
+  parentInfo->partialSum += value;
+  for (int fulfilledId : dataIds) {
+    parentInfo->pendingIds.erase(fulfilledId);
+    // If this was a single-ID data, cache it for future Interests
+    if (dataIds.size() == 1) {
+      m_cachedValues[fulfilledId] = value;  // store in local cache
+      std::cout << "  [Cache] Stored value " << value << " for single ID " << fulfilledId << std::endl << std::flush;
+    }
+  }
+  
+  std::cout << "    [Aggregation] Data " << dataName.toUri() << " contributes value " 
+            << value << " to parent Interest " << parentInfo->partialSum << std::endl;
+  std::cout << "    Remaining IDs for parent: { ";
+  for (int pid : parentInfo->pendingIds) std::cout << pid << " ";
+  std::cout << "}" << std::endl << std::flush;
+  
+  return value;
+}
+
+std::vector<Face*> 
+AggregateStrategy::extractFacesFromPitEntry(const std::shared_ptr<pit::Entry>& pitEntry)
+{
+  std::vector<Face*> outFaces;
+  for (const auto& inRecord : pitEntry->getInRecords()) {
+    outFaces.push_back(&inRecord.getFace());
+  }
+  
+  if (outFaces.empty()) {
+    std::cout << "  [WARNING] PIT entry has no InRecords - cannot send data" << std::endl;
+  }
+  
+  return outFaces;
+}
+
+void 
+AggregateStrategy::sendDataDirectly(const std::shared_ptr<::ndn::Data>& data, Face* outFace, 
+                                 const Name& dataName, uint64_t value)
+{
+  try {
+    // Use low-level direct send method that doesn't rely on PIT
+    outFace->sendData(*data);
+    
+    std::cout << "<< Sent aggregate Data " << dataName.toUri() 
+              << " with sum = " << value 
+              << " to face " << outFace->getId() 
+              << " (direct send, bypassing PIT)" << std::endl << std::flush;
+  }
+  catch (const std::exception& e) {
+    std::cout << "  [ERROR] Failed to send data: " << e.what() << std::endl;
+  }
+}
+
+void 
+AggregateStrategy::sendAggregatedDataToParentFaces(std::shared_ptr<pit::Entry> parentPit,
+                                                AggregatePitInfo* parentInfo)
+{
+  std::cout << "  [SubInterest] All components received, creating final aggregated Data" << std::endl << std::flush;
+  uint64_t totalSum = parentInfo->partialSum;
+  Name parentName = parentPit->getName();
+  
+  // Create the aggregated data packet
+  auto aggData = ns3::ndn::AggregateUtils::createDataWithValue(parentName, totalSum);
+  
+  try {
+    // Extract faces while parent PIT entry is still valid
+    std::vector<Face*> outFaces = extractFacesFromPitEntry(parentPit);
+    
+    // Send data directly to each face WITHOUT using PIT entries at all
+    for (Face* outFace : outFaces) {
+      sendDataDirectly(aggData, outFace, parentName, totalSum);
+    }
+  }
+  catch (const std::exception& e) {
+    std::cout << "  [ERROR] Failed to process parent PIT: " << e.what() << std::endl;
+  }
+}
+
+void 
+AggregateStrategy::satisfyPiggybackedInterests(AggregatePitInfo* parentInfo)
+{
+  if (parentInfo->dependentInterests.empty()) {
+    return;
+  }
+  
+  std::cout << "  [SubInterest] Satisfying " << parentInfo->dependentInterests.size() 
+            << " piggybacked child interests" << std::endl << std::flush;
+            
+  for (auto& weakChildPit : parentInfo->dependentInterests) {
+    auto childPit = weakChildPit.lock();
+    if (!childPit) continue;
+    
+    // Compute the subset sum for the child (it might be different from totalSum if parent had extra IDs)
+    AggregatePitInfo* childInfo = childPit->getStrategyInfo<AggregatePitInfo>();
+    if (!childInfo) continue;
+    
+    // Sum up values for child's needed IDs from our cached values (all should be available now)
+    uint64_t childSum = 0;
+    for (int cid : childInfo->neededIds) {
+      if (m_cachedValues.find(cid) != m_cachedValues.end()) {
+        childSum += m_cachedValues[cid];
+      }
+    }
+    
+    // Capture child's faces before potential PIT invalidation
+    std::vector<Face*> childFaces = extractFacesFromPitEntry(childPit);
+    if (childFaces.empty()) continue;
+    
+    // Send Data to satisfy the child interest with safe approach
+    Name childName = childPit->getName();
+    auto childData = ns3::ndn::AggregateUtils::createDataWithValue(childName, childSum);
+    
+    // Send to all child's in-faces using temp PIT entries
+    for (Face* outFace : childFaces) {
+      try {
+        // Create a temporary interest with the same name as the child
+        Interest tempInterest(childName);
+        auto tempPitEntry = m_forwarder.getPit().insert(tempInterest).first;
+        
+        // Add the face as an in-record for our temporary PIT entry
+        tempPitEntry->insertOrUpdateInRecord(*outFace, tempInterest);
+        
+        // Now send data using this temporary PIT entry
+        this->sendData(*childData, *outFace, tempPitEntry);
+        
+        std::cout << "<< Satisfied piggybacked Interest " << childName.toUri() 
+                  << " with sum = " << childSum 
+                  << " to face " << outFace->getId()
+                  << " (via safe temp PIT entry)" << std::endl;
+      }
+      catch (const std::exception& e) {
+        std::cout << "  [ERROR] Failed to send piggybacked data: " << e.what() << std::endl;
+      }
     }
   }
 }
