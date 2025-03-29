@@ -1,7 +1,7 @@
 Waf: Entering directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Waf: Leaving directory `/home/dd/ndnSIM-test/ndnSIM-2.9-raw/build'
 Build commands will be stored in build/compile_commands.json
-'build' finished successfully (1.432s)
+'build' finished successfully (1.465s)
 GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1
 Copyright (C) 2022 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
@@ -223,7 +223,7 @@ Strategy will use virtual method overrides.
 Installed consumer app on node 3
   Consumer will start at 1.0s
 === CONFIGURING SIMULATION ===
-[Detaching after vfork from child process 1122929]
+[Detaching after vfork from child process 1152433]
 L3RateTracer installed, output to results/rate-trace.txt
 Tracers installed. Simulation will run for 5.0 seconds
 Time: 0s
@@ -410,8 +410,8 @@ Time: 1s
 
 P1 - STRATEGY received Interest: /aggregate/%02/%03/seq=0 via 259 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -425,19 +425,15 @@ DEBUG: Current FIB entries:
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 4
 >> Received Interest /aggregate/%02/%03/seq=0 from face 259 requesting IDs = { 2 3 }
-DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
-DEBUG: Selected Face 257 for ID 2
-DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
-DEBUG: Selected Face 257 for ID 3
-OPTIMIZATION: All 2 IDs route to the same face (ID: 257).
-  >> Forwarding original interest directly - no optimization needed
+  [SelfGenerated] Producer P1 forwarding self-generated interest to the network
+[Strategy] Forwarding regular Interest /aggregate/%02/%03/seq=0 to face 257
 MAC TX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=43
   [PRESERVED] Restored InRecord for face 259 in PIT entry for /aggregate/%02/%03/seq=0
 
 P2 - STRATEGY received Interest: /aggregate/%01/%03/seq=0 via 259 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -451,19 +447,15 @@ DEBUG: Current FIB entries:
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 0
 >> Received Interest /aggregate/%01/%03/seq=0 from face 259 requesting IDs = { 1 3 }
-DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
-DEBUG: Selected Face 257 for ID 1
-DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
-DEBUG: Selected Face 257 for ID 3
-OPTIMIZATION: All 2 IDs route to the same face (ID: 257).
-  >> Forwarding original interest directly - no optimization needed
+  [SelfGenerated] Producer P2 forwarding self-generated interest to the network
+[Strategy] Forwarding regular Interest /aggregate/%01/%03/seq=0 to face 257
 MAC TX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=43
   [PRESERVED] Restored InRecord for face 259 in PIT entry for /aggregate/%01/%03/seq=0
 
 P3 - STRATEGY received Interest: /aggregate/%01/%02/seq=0 via 259 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -477,19 +469,15 @@ DEBUG: Current FIB entries:
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 4
 >> Received Interest /aggregate/%01/%02/seq=0 from face 259 requesting IDs = { 1 2 }
-DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
-DEBUG: Selected Face 257 for ID 1
-DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
-DEBUG: Selected Face 257 for ID 2
-OPTIMIZATION: All 2 IDs route to the same face (ID: 257).
-  >> Forwarding original interest directly - no optimization needed
+  [SelfGenerated] Producer P3 forwarding self-generated interest to the network
+[Strategy] Forwarding regular Interest /aggregate/%01/%02/seq=0 to face 257
 MAC TX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=43
   [PRESERVED] Restored InRecord for face 259 in PIT entry for /aggregate/%01/%02/seq=0
 
 R1 - STRATEGY received Interest: /aggregate/%02/%03/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -515,8 +503,8 @@ MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
 R2 - STRATEGY received Interest: /aggregate/%01/%03/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -542,8 +530,8 @@ MAC RX: /NodeList/4/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
 R3 - STRATEGY received Interest: /aggregate/%01/%02/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -569,8 +557,8 @@ MAC RX: /NodeList/5/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
 C1 - STRATEGY received Interest: /aggregate/%02/%03/seq=0 via 257 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -601,11 +589,11 @@ MAC RX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=43
 
 C1 - STRATEGY received Interest: /aggregate/%01/%03/seq=0 via 258 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1, no timer)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1, no timer)
+  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -631,13 +619,13 @@ MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=43
 
 C1 - STRATEGY received Interest: /aggregate/%01/%02/seq=0 via 259 at 1.00s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=1, no timer)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=1, no timer)
+  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=1, no timer)
+  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -660,9 +648,9 @@ MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=43
 
 R2 - STRATEGY received Interest: /aggregate/%02/seq=0 via 258 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=0, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -686,9 +674,9 @@ MAC RX: /NodeList/4/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
 
 R3 - STRATEGY received Interest: /aggregate/%03/seq=0 via 258 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -712,9 +700,9 @@ MAC RX: /NodeList/5/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
 
 R1 - STRATEGY received Interest: /aggregate/%01/seq=0 via 258 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=0)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=3 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=0, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -738,9 +726,9 @@ MAC RX: /NodeList/3/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=40
 
 P2 - STRATEGY received Interest: /aggregate/%02/seq=0 via 257 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /aggregate/%02/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -754,18 +742,16 @@ DEBUG: Current FIB entries:
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 258 Cost: 0
 >> Received Interest /aggregate/%02/seq=0 from face 257 requesting IDs = { 2 }
-DEBUG: Looking up FIB entry for ID 2, Name: /aggregate/%02
-DEBUG: Selected Face 258 for ID 2
-OPTIMIZATION: All 1 IDs route to the same face (ID: 258).
-  >> Forwarding original interest directly - no optimization needed
+  [DirectRequest] Interest requests P2's data directly - forwarding to application
+[Strategy] Forwarding regular Interest /aggregate/%02/seq=0 to face 258
   [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%02/seq=0
 MAC RX: /NodeList/1/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
 
 P3 - STRATEGY received Interest: /aggregate/%03/seq=0 via 257 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /aggregate/%03/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -779,18 +765,16 @@ DEBUG: Current FIB entries:
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 4
 >> Received Interest /aggregate/%03/seq=0 from face 257 requesting IDs = { 3 }
-DEBUG: Looking up FIB entry for ID 3, Name: /aggregate/%03
-DEBUG: Selected Face 258 for ID 3
-OPTIMIZATION: All 1 IDs route to the same face (ID: 258).
-  >> Forwarding original interest directly - no optimization needed
+  [DirectRequest] Interest requests P3's data directly - forwarding to application
+[Strategy] Forwarding regular Interest /aggregate/%03/seq=0 to face 258
   [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%03/seq=0
 MAC RX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
 
 P1 - STRATEGY received Interest: /aggregate/%01/seq=0 via 257 at 1.01s
 Current PIT entries before forwarding Interest:
-  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1)
-  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=0)
-  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1)
+  PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=1, has timer)
+  PIT entry: /aggregate/%01/seq=0 (InFaces=1, OutFaces=0, has timer)
+  PIT entry: /localhost/nfd/faces/events/seq=4 (InFaces=1, OutFaces=1, has timer)
 DEBUG: FIB table has 5 entries
 DEBUG: Current FIB entries:
   - Prefix: /localhost/nfd/rib (Nexthops: 1)
@@ -804,10 +788,8 @@ DEBUG: Current FIB entries:
   - Prefix: /aggregate/%02 (Nexthops: 1)
     * Face: 257 Cost: 4
 >> Received Interest /aggregate/%01/seq=0 from face 257 requesting IDs = { 1 }
-DEBUG: Looking up FIB entry for ID 1, Name: /aggregate/%01
-DEBUG: Selected Face 258 for ID 1
-OPTIMIZATION: All 1 IDs route to the same face (ID: 258).
-  >> Forwarding original interest directly - no optimization needed
+  [DirectRequest] Interest requests P1's data directly - forwarding to application
+[Strategy] Forwarding regular Interest /aggregate/%01/seq=0 to face 258
   [PRESERVED] Restored InRecord for face 257 in PIT entry for /aggregate/%01/seq=0
 MAC RX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=40
 
@@ -906,7 +888,7 @@ MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
   [SubInterest] Found matching parent for Data /aggregate/%02/seq=0
   [SubInterest] Processing Data for parent Interest /aggregate/%02/%03/seq=0
   [Cache] Stored value 2 for single ID 2
-    [Aggregation] Data /aggregate/%02/seq=0 contributes value 2 to parent Interest 2
+    [Aggregation] Data /aggregate/%02/seq=0 contributes value 2 to parent Interest (partialSum=2)
     Remaining IDs for parent: { 3 }
   [WaitingInterest] Found 1 interests waiting for Data /aggregate/%02/seq=0
     [Tracking] Removed ID 2 from waiting list (data has arrived)
@@ -914,6 +896,10 @@ MAC RX: /NodeList/3/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=362
     [Debug] Waiting interest has 0 remaining IDs: { }
   [WaitingMap] Interest is waiting for 1 IDs from other interests: { 1 (from /aggregate/%01/seq=0) }
   [WaitingInterest] Interest has empty pendingIds but is still waiting for data from other interests
+  [Cleanup] Cleared all records and marked PIT entry for /aggregate/%02/seq=0 as satisfied for removal
+  [PIT-Cleanup] Logging PIT entries status:
+  [PIT-State] Total entries: 7, Satisfied: 1, No records: 1
+  [PIT-Cleanup] PIT entries will be cleaned up by NFD's normal housekeeping process
 MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! C1 RECEIVED DATA ON FACE 258: /aggregate/%02/seq=0
@@ -938,18 +924,25 @@ MAC RX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacRx size=362
   [SubInterest] Found matching parent for Data /aggregate/%03/seq=0
   [SubInterest] Processing Data for parent Interest /aggregate/%02/%03/seq=0
   [Cache] Stored value 3 for single ID 3
-    [Aggregation] Data /aggregate/%03/seq=0 contributes value 3 to parent Interest 5
+    [Aggregation] Data /aggregate/%03/seq=0 contributes value 3 to parent Interest (partialSum=5)
     Remaining IDs for parent: { }
   [SubInterest] All components received, creating final aggregated Data
 MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=365
 << Sent aggregate Data /aggregate/%02/%03/seq=0 with sum = 5 to face 257 (direct send, bypassing PIT)
+  [Cleanup] Cleared all records and marked parent PIT entry for /aggregate/%02/%03/seq=0 as satisfied for removal
+  [PIT-Cleanup] Logging PIT entries status:
+  [PIT-State] Total entries: 7, Satisfied: 2, No records: 2
+  [PIT-Cleanup] PIT entries will be cleaned up by NFD's normal housekeeping process
   [SubInterest] Removed parent mapping for /aggregate/%03/seq=0
   [WaitingInterest] Found 1 interests waiting for Data /aggregate/%03/seq=0
     [Tracking] Removed ID 3 from waiting list (data has arrived)
     [Piggyback] Data /aggregate/%03/seq=0 received for waiting Interest /aggregate/%01/%03/seq=0
     [Debug] Waiting interest has 1 remaining IDs: { 1 }
   [WaitingInterest] Interest still waiting for 1 more IDs
-  [DirectData] Processing regular Data packet (not sub-interest)
+  [Cleanup] Cleared all records and marked PIT entry for /aggregate/%03/seq=0 as satisfied for removal
+  [PIT-Cleanup] Logging PIT entries status:
+  [PIT-State] Total entries: 7, Satisfied: 3, No records: 3
+  [PIT-Cleanup] PIT entries will be cleaned up by NFD's normal housekeeping process
 MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! C1 RECEIVED DATA ON FACE 259: /aggregate/%03/seq=0
@@ -957,7 +950,7 @@ MAC TX: /NodeList/6/DeviceList/0/$ns3::PointToPointNetDevice/MacTx size=362
   Total PIT entries: 7
     PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
     PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
-    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=0, OutFaces=0)
     PIT entry: /aggregate/%03/seq=0 (InFaces=0, OutFaces=0)
     **** MATCH FOUND **** for data: /aggregate/%03/seq=0
       In faces:
@@ -974,11 +967,15 @@ MAC RX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacRx size=362
   [SubInterest] Found matching parent for Data /aggregate/%01/seq=0
   [SubInterest] Processing Data for parent Interest /aggregate/%01/%03/seq=0
   [Cache] Stored value 1 for single ID 1
-    [Aggregation] Data /aggregate/%01/seq=0 contributes value 1 to parent Interest 4
+    [Aggregation] Data /aggregate/%01/seq=0 contributes value 1 to parent Interest (partialSum=4)
     Remaining IDs for parent: { }
   [SubInterest] All components received, creating final aggregated Data
 MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=365
 << Sent aggregate Data /aggregate/%01/%03/seq=0 with sum = 4 to face 258 (direct send, bypassing PIT)
+  [Cleanup] Cleared all records and marked parent PIT entry for /aggregate/%01/%03/seq=0 as satisfied for removal
+  [PIT-Cleanup] Logging PIT entries status:
+  [PIT-State] Total entries: 7, Satisfied: 4, No records: 4
+  [PIT-Cleanup] PIT entries will be cleaned up by NFD's normal housekeeping process
   [SubInterest] Removed parent mapping for /aggregate/%01/seq=0
   [WaitingInterest] Found 1 interests waiting for Data /aggregate/%01/seq=0
     [Tracking] Removed ID 1 from waiting list (data has arrived)
@@ -988,15 +985,18 @@ MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=365
   [WaitingInterest] All components received for waiting interest, creating final Data
 MAC TX: /NodeList/6/DeviceList/2/$ns3::PointToPointNetDevice/MacTx size=365
 << Sent aggregate Data for waiting Interest /aggregate/%01/%02/seq=0 with sum = 3 to face 259 (direct send, bypassing PIT)
-  [DirectData] Processing regular Data packet (not sub-interest)
+  [Cleanup] Cleared all records and marked PIT entry for /aggregate/%01/seq=0 as satisfied for removal
+  [PIT-Cleanup] Logging PIT entries status:
+  [PIT-State] Total entries: 7, Satisfied: 5, No records: 5
+  [PIT-Cleanup] PIT entries will be cleaned up by NFD's normal housekeeping process
 MAC TX: /NodeList/6/DeviceList/1/$ns3::PointToPointNetDevice/MacTx size=362
 
 !!! C1 RECEIVED DATA ON FACE 257: /aggregate/%01/seq=0
   === PIT STATE ON C1 ===
   Total PIT entries: 7
-    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%01/%03/seq=0 (InFaces=0, OutFaces=0)
     PIT entry: /aggregate/%01/%02/seq=0 (InFaces=1, OutFaces=0)
-    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=1, OutFaces=0)
+    PIT entry: /aggregate/%02/%03/seq=0 (InFaces=0, OutFaces=0)
     PIT entry: /aggregate/%03/seq=0 (InFaces=0, OutFaces=0)
     PIT entry: /aggregate/%02/seq=0 (InFaces=0, OutFaces=0)
     PIT entry: /aggregate/%01/seq=0 (InFaces=0, OutFaces=0)
@@ -1104,6 +1104,6 @@ MAC RX: /NodeList/2/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=365
   [Forward] Data /aggregate/%02/%03/seq=0 will be forwarded downstream by forwarder
   [DirectData] Processing regular Data packet (not sub-interest)
 MAC RX: /NodeList/0/DeviceList/0/$ns3::PointToPointNetDevice/MacRx size=365
-[Inferior 1 (process 1122512) exited normally]
+[Inferior 1 (process 1152022) exited normally]
 [Program stopped: printing stack trace]Error while running hook_stop:
 No stack.
