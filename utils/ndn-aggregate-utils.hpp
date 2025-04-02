@@ -145,6 +145,13 @@ public:
    */
   static void logInterestInfo(const ::ndn::Interest& interest, uint32_t faceId, 
                             const std::string& nodeInfo);
+
+    /**
+   * @brief Create a new name without sequence number components
+   * @param name The NDN name to process
+   * @return A new name with all "seq=" components removed
+   */
+  static ::ndn::Name getNameWithoutSequence(const ::ndn::Name& name);
 };
 
 } // namespace ndn

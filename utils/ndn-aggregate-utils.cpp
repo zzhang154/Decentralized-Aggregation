@@ -199,11 +199,32 @@ AggregateUtils::createSplitInterest(const ::ndn::Name& subInterestName,
 AggregateUtils::extractSequenceComponent(const ::ndn::Name& name)
 {
   for (size_t i = 0; i < name.size(); i++) {
+    // Check for string-based sequence
     if (name[i].toUri().find("seq=") != std::string::npos) {
+      return name[i];
+    }
+    // Check for native sequence numbers
+    if (name[i].isSequenceNumber()) {
       return name[i];
     }
   }
   return ::ndn::Name::Component();
+}
+
+::ndn::Name
+AggregateUtils::getNameWithoutSequence(const ::ndn::Name& name)
+{
+  ::ndn::Name result;
+  
+  for (size_t i = 0; i < name.size(); i++) {
+    // Check for both string-based sequence markers AND native sequence numbers
+    std::string uri = name[i].toUri();
+    if (uri.find("seq=") == std::string::npos && !name[i].isSequenceNumber()) {
+      result.append(name[i]);
+    }
+  }
+  
+  return result;
 }
 
 bool
