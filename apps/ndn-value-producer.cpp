@@ -209,7 +209,7 @@ void
 ValueProducer::OnData(std::shared_ptr<const ::ndn::Data> data)
 { 
   ::ndn::Name dataName = data->getName();
-  std::cout << "\nNode " << m_nodeId << " received Data: " << dataName << std::endl;
+  std::cout << "\nNode " << m_nodeId << " received Data: " << dataName << std::endl << std::flush;
   
   // NEW: Check if this is a response to our self-generated interest
   bool isResponseToMyInterest = false;
@@ -571,6 +571,8 @@ ValueProducer::ForwardDataToNetwork(std::shared_ptr<const ::ndn::Data> data)
   }
 }
 
+// Update the ForwardToStrategy method:
+
 void
 ValueProducer::ForwardToStrategy(std::shared_ptr<const ::ndn::Interest> interest)
 {
@@ -593,7 +595,17 @@ ValueProducer::ForwardToStrategy(std::shared_ptr<const ::ndn::Interest> interest
   auto newInterest = std::make_shared<::ndn::Interest>(*interest);
   newInterest->refreshNonce();
   
-  // Look up the FIB entry for this interest - IMPORTANT: use getName() instead of the Interest object
+  // CRITICAL FIX: Create a PIT entry before forwarding
+  auto pitInsertResult = forwarder->getPit().insert(*newInterest);
+  std::shared_ptr<nfd::pit::Entry> pitEntry = pitInsertResult.first;
+  
+  // Add this app face as an IN record in the PIT entry
+  pitEntry->insertOrUpdateInRecord(*m_face, *newInterest);
+  
+  std::cout << "  [IMPORTANT] Created PIT entry for " << newInterest->getName() 
+            << " with app face " << m_face->getId() << " as InRecord" << std::endl;
+  
+  // Look up the FIB entry for this interest
   const auto& fib = forwarder->getFib();
   const auto& fibEntry = fib.findLongestPrefixMatch(newInterest->getName());
   
@@ -623,9 +635,18 @@ ValueProducer::ForwardToStrategy(std::shared_ptr<const ::ndn::Interest> interest
                   << " → sending via face " << face.getId() 
                   << " (cost: " << nextHop.getCost() << ")" << std::endl;
         
-        // Send via this face - must cast to non-const to call sendInterest
+        // IMPORTANT: Add an OUT record to the PIT entry
         nfd::Face* mutableFace = const_cast<nfd::Face*>(&face);
+        pitEntry->insertOrUpdateOutRecord(*mutableFace, *newInterest);
+        
+        // Send via this face
         mutableFace->sendInterest(*newInterest);
+        
+        // DEBUG: Verify PIT entry after sending
+        std::cout << "  [PIT-VERIFY] After sending, PIT entry has " 
+                  << pitEntry->getInRecords().size() << " in-records and "
+                  << pitEntry->getOutRecords().size() << " out-records" << std::endl;
+                
         sentInterest = true;
         break;
       }
@@ -640,6 +661,10 @@ ValueProducer::ForwardToStrategy(std::shared_ptr<const ::ndn::Interest> interest
                 << " (cost: " << nh.getCost() << ")" << std::endl;
     }
   }
+  
+  // Verify PIT entries after forwarding
+  Simulator::Schedule(MilliSeconds(5), &ValueProducer::DebugPitState, 
+                     this, newInterest->getName());
 }
 
 } // namespace ndn

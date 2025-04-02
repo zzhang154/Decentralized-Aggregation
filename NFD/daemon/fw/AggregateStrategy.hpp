@@ -118,12 +118,9 @@ private:
                         const Name& dataName, uint64_t value);
 
   // ** Data structures for coordinating sub-Interests and piggybacking **
-  std::multimap<std::string, std::weak_ptr<pit::Entry>> m_parentMap; // Changed from map to multimap
+  std::map<Name, std::weak_ptr<pit::Entry>> m_parentMap;
   std::map<Name, std::vector<std::weak_ptr<pit::Entry>>> m_waitingInterests;
-  static std::unordered_map<int, uint64_t> m_cachedValues;
-
-  static int s_instanceCounter;
-  int m_instanceId;
+  std::unordered_map<int, uint64_t> m_cachedValues;
 };
 
 } // namespace fw

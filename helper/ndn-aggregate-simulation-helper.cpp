@@ -415,9 +415,9 @@ AggregateSimulationHelper::SetupDataMonitoring()
     auto role = ns3::ndn::AggregateUtils::determineNodeRole(i);
     
     // Skip nodes we don't want to monitor
-    if (!ShouldMonitorNode(role)) {
-      continue;
-    }
+    // if (!ShouldMonitorNode(role)) {
+    //   continue;
+    // }
     
     // Get role string with logical ID using the utility function
     std::string roleStr = ns3::ndn::AggregateUtils::getNodeRoleString(role, i);

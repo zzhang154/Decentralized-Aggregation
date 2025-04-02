@@ -18,8 +18,6 @@ namespace nfd {
 namespace fw {
 
 // Initialize static members
-std::unordered_map<int, uint64_t> AggregateStrategy::m_cachedValues;
-int AggregateStrategy::s_instanceCounter = 0;  // Add this line here
 
 const Name&
 AggregateStrategy::getStrategyName() {
@@ -40,7 +38,6 @@ AggregateStrategy::AggregateStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder)
   , m_forwarder(forwarder)
   , m_nodeId(ns3::NodeContainer::GetGlobal().Get(ns3::Simulator::GetContext())->GetId() + 1)
-  , m_instanceId(++s_instanceCounter)  // Add this line
 {
   // Set the instance name explicitly
   this->setInstanceName(name);
@@ -183,112 +180,99 @@ void
 AggregateStrategy::beforeSatisfyInterest(const ndn::Data& data, const FaceEndpoint& ingress,
                                         const std::shared_ptr<pit::Entry>& pitEntry)
 {
-    // Add this right at the start to ensure it appears
-    std::cerr << "!!!ULTRA DEBUG!!! Processing: " << data.getName().toUri() << std::endl;
+  // Print debug info
+  std::cout << "\n!! RAW DATA RECEIVED BY FORWARDER: " 
+            << ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, m_nodeId - 1)
+            << " received data " << data.getName() 
+            << " from face " << ingress.face.getId() << std::endl;
 
-    // Print debug info
-    std::cout << "\n!! RAW DATA RECEIVED BY FORWARDER: " 
-              << ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, m_nodeId - 1)
-              << " received data " << data.getName() 
-              << " from face " << ingress.face.getId() << std::endl;
+  // Print PIT entry state BEFORE it gets cleared
+  std::cout << "  PIT ENTRY BEFORE SATISFACTION: " << pitEntry->getName()
+            << " (InFaces=" << pitEntry->getInRecords().size()
+            << ", OutFaces=" << pitEntry->getOutRecords().size() << ")" << std::endl;
 
-    // More debug - use cerr which won't be buffered
-    std::cerr << "!!!MULTIMAP CONTENTS!!! Count=" << m_parentMap.size() << std::endl;
-    for (auto it = m_parentMap.begin(); it != m_parentMap.end(); ++it) {
-        std::cerr << "  KEY: " << it->first << std::endl;
+  // Print all InFaces
+  std::cout << "  InFaces:";
+  for (const auto& inRecord : pitEntry->getInRecords()) {
+    std::cout << " " << inRecord.getFace().getId();
+  }
+  std::cout << std::endl;
+
+  Name dataName = data.getName();
+  std::cout << "<< [beforeSatisfyInterest] Processing data: " << dataName.toUri() 
+            << " from face " << ingress.face.getId() << std::endl;
+
+  // Check if this data should be consumed by the strategy
+  bool isSubInterestResponse = (m_parentMap.find(dataName) != m_parentMap.end());
+  bool hasWaitingInterests = (m_waitingInterests.find(dataName) != m_waitingInterests.end());
+
+  if (isSubInterestResponse || hasWaitingInterests) {
+    std::cout << "  [Consume] Data " << dataName.toUri() 
+              << " is being handled by the strategy - suppressing forwarding" << std::endl;
+
+    // Process data - now allows both conditions to be handled
+    if (isSubInterestResponse) {
+      processSubInterestData(data, dataName, ingress, pitEntry);
     }
-    std::cerr << "!!!SEARCHING FOR!!! " << data.getName().toUri() << std::endl;
-    std::cerr << "!!!COUNT RESULT!!! " << m_parentMap.count(data.getName().toUri()) << std::endl;
-
-    // Print PIT entry state BEFORE it gets cleared
-    std::cout << "  PIT ENTRY BEFORE SATISFACTION: " << pitEntry->getName()
-              << " (InFaces=" << pitEntry->getInRecords().size()
-              << ", OutFaces=" << pitEntry->getOutRecords().size() << ")" << std::endl;
-
-    // Print all InFaces
-    std::cout << "  InFaces:";
-    for (const auto& inRecord : pitEntry->getInRecords()) {
-        std::cout << " " << inRecord.getFace().getId();
+    if (hasWaitingInterests) {  // Changed from "else if" to "if"
+      processWaitingInterestData(data, dataName, ingress, pitEntry);
     }
-    std::cout << std::endl;
 
-    Name dataName = data.getName();
-    std::cout << "<< [beforeSatisfyInterest] Processing data: " << dataName.toUri() 
-              << " from face " << ingress.face.getId() << std::endl << std::flush;
-
-    // ADD DEBUG CODE HERE
-    std::cout << "\n[DEBUG-KEYS] Strategy Instance #" << m_instanceId 
-          << " at node " << m_nodeId << " - All keys in multimap:" << std::endl << std::flush;
-    for (auto it = m_parentMap.begin(); it != m_parentMap.end(); ++it) {
-        std::cout << "  '" << it->first << "'" << std::endl << std::flush;
-    }
-    std::cout << "[DEBUG-SEARCH] Strategy Instance #" << m_instanceId 
-              << " searching for: '" << dataName.toUri() << "'" << std::endl << std::flush;
-
-    // IMPORTANT FIX: Use count() instead of find() for multimap
-    // Check if this data should be consumed by the strategy
-    bool isSubInterestResponse = (m_parentMap.count(dataName.toUri()) > 0);
-    bool hasWaitingInterests = (m_waitingInterests.find(dataName) != m_waitingInterests.end());
-
-    // Print debug info about whether this is a sub-interest response
-    std::cout << "  [DEBUG] Is sub-interest response: " << (isSubInterestResponse ? "YES" : "NO") 
-              << " (m_parentMap.count = " << m_parentMap.count(dataName.toUri()) << ")" << std::endl;
+    // Mark PIT entry as satisfied (this is essential for cleanup)
+    pitEntry->isSatisfied = true;
     
-    // Always check both paths - a Data packet might both be a sub-interest response AND
-    // have waiting interests for it from other parent interests
-    if (isSubInterestResponse || hasWaitingInterests) {
-        std::cout << "  [Consume] Data " << dataName.toUri() 
-                  << " is being handled by the strategy - suppressing forwarding" << std::endl;
-
-        // IMPORTANT: Always process both paths, as data might serve multiple purposes
-        if (isSubInterestResponse) {
-            processSubInterestData(data, dataName, ingress, pitEntry);
-        }
-        
-        if (hasWaitingInterests) {
-            processWaitingInterestData(data, dataName, ingress, pitEntry);
-        }
-
-        // Mark PIT entry as satisfied (this is essential for cleanup)
-        pitEntry->isSatisfied = true;
-        
-        // Clear in-records to prevent normal data forwarding
-        while (!pitEntry->getInRecords().empty()) {
-            const pit::InRecord& inRec = pitEntry->getInRecords().front();
-            pitEntry->deleteInRecord(inRec.getFace());
-        }
-        
-        // Clear out-records as well for complete cleanup
-        while (!pitEntry->getOutRecords().empty()) {
-            const pit::OutRecord& outRec = pitEntry->getOutRecords().front();
-            pitEntry->deleteOutRecord(outRec.getFace());
-        }
-        
-        // Cancel any existing timer (PIT entry will be cleaned up by the forwarder)
-        if (pitEntry->expiryTimer) {
-            pitEntry->expiryTimer.cancel();
-        }
-        
-        std::cout << "  [Cleanup] Cleared all records and marked PIT entry for " << dataName.toUri() 
-                  << " as satisfied for removal" << std::endl;
-        
-        // Request immediate cleanup
-        cleanupSatisfiedPitEntries();
-
-        // Do not call base class method (prevents forwarding)
-        return;
+    // Clear in-records to prevent normal data forwarding
+    while (!pitEntry->getInRecords().empty()) {
+      const pit::InRecord& inRec = pitEntry->getInRecords().front();
+      pitEntry->deleteInRecord(inRec.getFace());
     }
-    else {
-        std::cout << "  [Forward] Data " << dataName.toUri() 
-                  << " will be forwarded downstream by forwarder" << std::endl;
-
-        // Process as direct data
-        processDirectData(data, dataName, ingress, pitEntry);
-
-        // Call base implementation for regular data
-        Strategy::beforeSatisfyInterest(data, ingress, pitEntry);
+    
+    // Clear out-records as well for complete cleanup
+    while (!pitEntry->getOutRecords().empty()) {
+      const pit::OutRecord& outRec = pitEntry->getOutRecords().front();
+      pitEntry->deleteOutRecord(outRec.getFace());
     }
+    
+    // Cancel any existing timer (PIT entry will be cleaned up by the forwarder)
+    if (pitEntry->expiryTimer) {
+      pitEntry->expiryTimer.cancel();
+    }
+    
+    std::cout << "  [Cleanup] Cleared all records and marked PIT entry for " << dataName.toUri() 
+              << " as satisfied for removal" << std::endl;
+    
+    // Request immediate cleanup
+    cleanupSatisfiedPitEntries();
+
+    // Do not call base class method (prevents forwarding)
+    return;
+  }
+  else {
+    std::cout << "  [Forward] Data " << dataName.toUri() 
+              << " will be forwarded downstream by forwarder" << std::endl;
+
+    // Check if this data should be forwarded downstream to satisfy interests
+    if (pitEntry->getInRecords().size() > 0) {
+      std::cout << "  [Downstream] Found " << pitEntry->getInRecords().size() 
+                << " downstream interests to satisfy" << std::endl;
+      
+      // Log each downstream face for debugging
+      for (const auto& inRecord : pitEntry->getInRecords()) {
+          std::cout << "    Will forward to face: " << inRecord.getFace().getId() << std::endl;
+      }
+    } else {
+        std::cout << "  [Warning] No downstream faces to forward data to!" << std::endl;
+    }
+
+    // Process as direct data
+    processDirectData(data, dataName, ingress, pitEntry);
+
+    // Call base implementation for regular data
+    Strategy::beforeSatisfyInterest(data, ingress, pitEntry);
+  }
 }
+
+// In the registerPitExpirationCallback method:
 
 void 
 AggregateStrategy::registerPitExpirationCallback()
@@ -296,9 +280,14 @@ AggregateStrategy::registerPitExpirationCallback()
   // Register a callback for PIT entry expiration using NFD's signal mechanism
   m_forwarder.beforeExpirePendingInterest.connect(
     [this] (const pit::Entry& pitEntry) {
-      std::cout << "!! PIT EXPIRED: " << pitEntry.getName().toUri()
+      // Get node role and ID for logging
+      uint32_t nodeIndex = m_nodeId - 1;
+      std::string nodeRoleStr = ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, nodeIndex);
+      
+      std::cout << "!! PIT EXPIRED: " << nodeRoleStr << " - " << pitEntry.getName().toUri()
                 << " at " << std::fixed << std::setprecision(2) 
                 << ns3::Simulator::Now().GetSeconds() << "s" << std::endl << std::flush;
+                
       // Log details of the expired entry
       AggregatePitInfo* pitInfo = pitEntry.getStrategyInfo<AggregatePitInfo>();
       if (pitInfo) {
@@ -312,11 +301,17 @@ AggregateStrategy::registerPitExpirationCallback()
   std::cout << "PIT expiration handler registered!" << std::endl << std::flush;
 }
 
+// Update the beforeExpirePendingInterest method as well:
+
 void 
 AggregateStrategy::beforeExpirePendingInterest(const std::shared_ptr<pit::Entry>& pitEntry)
 {
+  // Get node role and ID for logging
+  uint32_t nodeIndex = m_nodeId - 1;
+  std::string nodeRoleStr = ns3::ndn::AggregateUtils::getNodeRoleString(m_nodeRole, nodeIndex);
+  
   Name interestName = pitEntry->getName();
-  std::cout << "!! PIT EXPIRED: " << interestName.toUri()
+  std::cout << "!! PIT EXPIRED: " << nodeRoleStr << " - " << interestName.toUri()
             << " at " << std::fixed << std::setprecision(2) 
             << ns3::Simulator::Now().GetSeconds() << "s" << std::endl << std::flush;
 
@@ -347,113 +342,24 @@ AggregateStrategy::processSubInterestData(const ndn::Data& data, const Name& dat
                                          const FaceEndpoint& ingress,
                                          const std::shared_ptr<pit::Entry>& pitEntry)
 {
-  // Add this debug code at the beginning
-  std::cout << "\n[DEBUG] Looking for parents of " << dataName.toUri() << " in multimap..." << std::endl;
-  std::cout << "[DEBUG] All multimap entries: (count=" << m_parentMap.size() << ")" << std::endl;
-  for (auto it = m_parentMap.begin(); it != m_parentMap.end(); ++it) {
-      auto parent = it->second.lock();
-      if (parent) {
-          std::cout << "  " << it->first << " -> " << parent->getName().toUri() << std::endl;
-      }
+  // 1. Find and validate the parent PIT entry
+  auto [parentPit, parentInfo] = findParentPitEntry(dataName);
+  if (!parentPit || !parentInfo) {
+    return; // Invalid parent entry
   }
 
-  // Get range of parent entries for this Data name
-  auto range = m_parentMap.equal_range(dataName.toUri());
-  if (range.first == range.second) {
-    // Not a sub-interest response
-    return;
-  }
+  // 2. Update parent with data from this sub-interest
+  updateParentWithSubInterestData(data, dataName, parentInfo);
 
-  std::cout << "  [SubInterest] Found " << std::distance(range.first, range.second) 
-            << " matching parents for Data " << dataName.toUri() << std::endl;
-  
-  // Extract value and IDs once for all parent entries
-  uint64_t value = ns3::ndn::AggregateUtils::extractValueFromContent(data);
-  std::set<int> dataIds = ns3::ndn::AggregateUtils::parseNumbersFromName(dataName);
-  
-  // If this Data is atomic (single ID), cache its value
-  if (dataIds.size() == 1) {
-    int id = *dataIds.begin();
-    m_cachedValues[id] = value;
-    std::cout << "  [Cache] Stored value " << value << " for single ID " << id << std::endl;
-  }
-
-  // Process each parent entry
-  for (auto it = range.first; it != range.second;) {
-    std::shared_ptr<pit::Entry> parentPit = it->second.lock();
-    if (!parentPit) {
-      // Remove expired references
-      it = m_parentMap.erase(it);
-      continue;
-    }
-    
-    AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
-    if (!parentInfo) {
-      it = m_parentMap.erase(it);
-      continue;
-    }
-    
-    std::cout << "  [SubInterest] Processing Data for parent Interest " << parentPit->getName().toUri() << std::endl;
-    
-    // Update parent's partial sum and mark these IDs as fulfilled
-    parentInfo->partialSum += value;
-    for (int fulfilledId : dataIds) {
-      parentInfo->pendingIds.erase(fulfilledId);
-    }
-    
-    std::cout << "    [Aggregation] Data " << dataName.toUri() << " contributes value " 
-              << value << " to parent Interest (partialSum=" << parentInfo->partialSum << ")" << std::endl;
-    std::cout << "    Remaining IDs for parent: { ";
-    for (int pid : parentInfo->pendingIds) {
-      std::cout << pid << " ";
-    }
-    std::cout << "}" << std::endl;
-
-    // If all components have arrived, satisfy the parent interest
-    if (parentInfo->pendingIds.empty()) {
-      // Send aggregated data to parent faces
-      sendAggregatedDataToParentFaces(parentPit, parentInfo);
-      // Process any piggybacked interests
-      satisfyPiggybackedInterests(parentInfo);
-    }
-    
-    ++it;
-  }
-  
-  // CRITICAL FIX: Only remove entries for the CURRENT data name
-  // NOT for other data names in the multimap
-  auto range2 = m_parentMap.equal_range(dataName.toUri());
-  std::cout << "  [DEBUG-CLEANUP] Only cleaning up mappings for: " << dataName.toUri() 
-            << " (" << std::distance(range2.first, range2.second) << " entries)" << std::endl;
-  
-  for (auto it = range2.first; it != range2.second;) {
-    std::shared_ptr<pit::Entry> parentPit = it->second.lock();
-    if (!parentPit) {
-      std::cout << "    [DEBUG-CLEANUP] Removing expired parent reference" << std::endl;
-      it = m_parentMap.erase(it);
-      continue;
-    }
-    
-    AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
-    if (!parentInfo || parentInfo->pendingIds.empty()) {
-      // Remove mapping if parent is satisfied
-      std::cout << "    [DEBUG-CLEANUP] Removing satisfied parent: " << parentPit->getName().toUri() << std::endl;
-      it = m_parentMap.erase(it);
-    } else {
-      std::cout << "    [DEBUG-CLEANUP] Keeping parent with pending IDs: " << parentPit->getName().toUri() << std::endl;
-      ++it;
-    }
-  }
-  
-  // Add after cleanup to show remaining multimap state
-  std::cout << "[DEBUG-FINAL] Multimap after processing (count=" << m_parentMap.size() << "):" << std::endl;
-  for (auto it = m_parentMap.begin(); it != m_parentMap.end(); ++it) {
-    auto parent = it->second.lock();
-    if (parent) {
-      std::cout << "  " << it->first << " -> " << parent->getName().toUri() << std::endl;
-    } else {
-      std::cout << "  " << it->first << " -> (expired)" << std::endl;
-    }
+  // 3. If all components have arrived, satisfy the parent interest
+  if (parentInfo->pendingIds.empty()) {
+    // Send aggregated data to parent faces
+    sendAggregatedDataToParentFaces(parentPit, parentInfo);
+    // Process any piggybacked interests
+    satisfyPiggybackedInterests(parentInfo);
+    // Important: Only remove the mapping after we've finished using it
+    m_parentMap.erase(dataName);
+    std::cout << "  [SubInterest] Removed parent mapping for " << dataName.toUri() << std::endl << std::flush;
   }
 }
 
@@ -462,16 +368,13 @@ AggregateStrategy::processWaitingInterestData(const ndn::Data& data, const Name&
                                               const FaceEndpoint& ingress,
                                               const std::shared_ptr<pit::Entry>& pitEntry)
 {
-  std::cout << "\n[DEBUG] Looking for interests waiting for " << dataName.toUri() << "..." << std::endl;
-  
   auto waitIt = m_waitingInterests.find(dataName);
   if (waitIt == m_waitingInterests.end()) {
-    std::cout << "[DEBUG] No waiting interests found for " << dataName.toUri() << std::endl;
     return; // No waiting interests
   }
 
   std::cout << "  [WaitingInterest] Found " << waitIt->second.size() 
-            << " interests waiting for Data " << dataName.toUri() << std::endl;
+            << " interests waiting for Data " << dataName.toUri() << std::endl << std::flush;
 
   // Extract value from data
   uint64_t value = ns3::ndn::AggregateUtils::extractValueFromContent(data);
@@ -584,7 +487,7 @@ AggregateStrategy::processDirectData(const ndn::Data& data, const Name& dataName
                                      const std::shared_ptr<pit::Entry>& pitEntry)
 {
   // Only process if this is not a sub-interest response
-  if (m_parentMap.find(dataName.toUri()) != m_parentMap.end()) {
+  if (m_parentMap.find(dataName) != m_parentMap.end()) {
     return;
   }
 
@@ -604,6 +507,7 @@ AggregateStrategy::processDirectData(const ndn::Data& data, const Name& dataName
       std::cout << "  [DirectData] Failed to parse ID as integer" << std::endl << std::flush;
     }
   }
+  return;
 }
 
 // Helper function for afterReceiveInterest:
@@ -730,23 +634,8 @@ AggregateStrategy::handleSingleFaceForwarding(const Interest& interest, const Fa
       subInfo->parentEntry = pitEntry;
     }
 
-    // Add to parent multimap using insert instead of subscript operator
-    m_parentMap.insert(std::make_pair(optimizedName.toUri(), pitEntry));
-    
-    // Add debug output for the mapping, just like in splitAndForwardInterests
-    std::cout << "  [DEBUG] Added mapping: sub-interest " << optimizedName.toUri() 
-              << " -> parent " << pitEntry->getName().toUri() << std::endl;
-    std::cout << "  [DEBUG] Current parents for " << optimizedName.toUri() << ": ";
-    auto mappings = m_parentMap.equal_range(optimizedName.toUri());
-    for (auto it = mappings.first; it != mappings.second; ++it) {
-        auto parent = it->second.lock();
-        if (parent) {
-            std::cout << parent->getName().toUri() << " ";
-        } else {
-            std::cout << "(expired) ";
-        }
-    }
-    std::cout << std::endl;
+    // Add to parent map
+    m_parentMap[optimizedName] = pitEntry;
 
     // Send and preserve in-records
     this->sendInterest(*optimizedInterest, *outFace, newPitEntry);
@@ -963,12 +852,6 @@ AggregateStrategy::checkSubsetSupersetRelationships(const ndn::Interest& interes
           pitInfo->waitInfo->waitingFor[overlapId] = entryRef.getName();
           std::cout << "  [Tracking] ID " << overlapId << " will come from " 
                     << entryRef.getName().toUri() << std::endl << std::flush;
-          
-          // CRITICAL FIX: Add this subset interest as a parent mapping
-          // so when data for this sub-interest arrives, it will update both parents
-          m_parentMap.insert(std::make_pair(entryRef.getName().toUri(), pitEntry));
-          std::cout << "  [DEBUG] Added mapping: sub-interest " << entryRef.getName().toUri() 
-                   << " -> parent " << pitEntry->getName().toUri() << std::endl;
         }
       }
       // Link this interest to wait for the subset Data
@@ -1051,25 +934,8 @@ AggregateStrategy::splitAndForwardInterests(const ndn::Interest& interest, const
     if (subInfo) {
       subInfo->parentEntry = pitEntry;
     }
-    
-    // Record the mapping to parent using multimap insert to allow multiple parents
-    m_parentMap.insert(std::make_pair(subInterestName.toUri(), pitEntry));
-
-    // Debug: Print current mappings for this sub-interest
-    std::cout << "  [DEBUG] Added mapping: sub-interest " << subInterestName.toUri() 
-              << " -> parent " << pitEntry->getName().toUri() << std::endl;
-    std::cout << "  [DEBUG] Current parents for " << subInterestName.toUri() << ": ";
-    auto mappings = m_parentMap.equal_range(subInterestName.toUri());
-    for (auto it = mappings.first; it != mappings.second; ++it) {
-        auto parent = it->second.lock();
-        if (parent) {
-            std::cout << parent->getName().toUri() << " ";
-        } else {
-            std::cout << "(expired) ";
-        }
-    }
-    std::cout << std::endl;
-    
+    // Record the mapping to parent
+    m_parentMap[subInterestName] = pitEntry;
     // Forward the interest
     this->sendInterest(*subInterest, *outFace, newPitEntry);
     // Copy ingress in-record to sub-interest's PIT entry
@@ -1116,7 +982,7 @@ AggregateStrategy::cleanupSatisfiedPitEntries()
 std::pair<std::shared_ptr<pit::Entry>, AggregateStrategy::AggregatePitInfo*>
 AggregateStrategy::findParentPitEntry(const Name& dataName)
 {
-  auto parentIt = m_parentMap.find(dataName.toUri());
+  auto parentIt = m_parentMap.find(dataName);
   if (parentIt == m_parentMap.end()) {
     return {nullptr, nullptr};  // Not a sub-interest response
   }
@@ -1126,13 +992,13 @@ AggregateStrategy::findParentPitEntry(const Name& dataName)
   std::shared_ptr<pit::Entry> parentPit = parentIt->second.lock();
   if (!parentPit) {
     std::cout << "  [SubInterest] Parent PIT entry already expired" << std::endl << std::flush;
-    m_parentMap.erase(dataName.toUri());
+    m_parentMap.erase(dataName);
     return {nullptr, nullptr};
   }
   AggregatePitInfo* parentInfo = parentPit->getStrategyInfo<AggregatePitInfo>();
   if (!parentInfo) {
     std::cout << "  [SubInterest] No strategy info found for parent PIT entry" << std::endl << std::flush;
-    m_parentMap.erase(dataName.toUri());
+    m_parentMap.erase(dataName);
     return {nullptr, nullptr};
   }
   std::cout << "  [SubInterest] Processing Data for parent Interest " << parentPit->getName().toUri() << std::endl << std::flush;
